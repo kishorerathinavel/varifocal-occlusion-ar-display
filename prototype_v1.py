@@ -1,4 +1,5 @@
 import sys
+from common_functions import *
 
 # All values are in centimeters
 class OD(): # Short for Implemented Optical Design
@@ -33,24 +34,6 @@ class OD(): # Short for Implemented Optical Design
         self.calc_d_W_eye()
         self.d_WI_eye = self.d_W_eye
         self.d_OI_eye = self.d_W_eye
-
-def convert_dpt2cm(value_dpt):
-    return convert_m2cm(1/value_dpt)
-
-def convert_m2cm(value_m):
-    return 100*value_m
-
-def calculate_image_distance(d_O, f):
-    return (d_O*f)/(d_O - f)
-
-def calculate_focal_length(d_O, d_I):
-    return (d_O * d_I)/(d_I + d_O)
-
-def convert_cm2m(value_cm):
-    return value_cm/100.0
-
-def convert_cm2dpt(value_cm):
-    return 1/(convert_cm2m(value_cm))
 
 def main():
     IOD = OD()
