@@ -1,10 +1,11 @@
-from sympy.interactive import init_printing
 from sympy import *
+# from sympy.abc import x, y
 from numpy.linalg import inv
 import numpy as np
+import inspect
 
 def makeLensMatrix(f):
-    mat = Matrix([[1,0],[-1/f,1]])
+    mat = Matrix([[1,0],[-f,1]])
     return(mat)
 
 def makeFreeSpacePropagationMatrix(d):
@@ -34,9 +35,22 @@ def simulateHowlett():
     print(M2_arr[1,0])
     print(M2_arr[1,1])
 
-def temp_print_special(M):
-    print(latex(M[0,0]))
-
+def print_matrix(mat):
+    print("=========\n")
+    print(latex(mat[0,0], order = 'ilex'))
+    print(latex(mat[0,1], order = 'ilex'))
+    print(latex(mat[1,0], order = 'ilex'))
+    print(latex(mat[1,1], order = 'ilex'))
+    print("=========\n")
+    
+def print_matrix_all_formats(mat):
+    formats = ['lex', 'grlex', 'grevlex', 'ilex', 'igrlex', 'igrevlex', 'old']
+    # ilex, igrlex, igrevlex is good.
+    # ilex is better
+    for format in formats:
+        print(latex(mat[0,0], order=format))
+        # Refer to https://github.com/sympy/sympy/issues/5203
+    
 def main():
     # b = Symbol('b')
     # mat_A = Matrix([[3,0], [4,1]])
@@ -47,13 +61,13 @@ def main():
 
     # simulateHowlett()
     
-    sym_f1 = Symbol('f_1^{(t)}')
+    sym_f1 = Symbol('F_1^{(t)}')
     M1 = makeLensMatrix(sym_f1)
-    sym_f2 = Symbol('f_2^{(t)}')
+    sym_f2 = Symbol('F_2^{(t)}')
     M2 = makeLensMatrix(sym_f2)
-    sym_f3 = Symbol('f_2^{(t)}')
+    sym_f3 = Symbol('F_2^{(t)}')
     M3 = makeLensMatrix(sym_f3)
-    sym_f4 = Symbol('f_1^{(t)}')
+    sym_f4 = Symbol('F_1^{(t)}')
     M4 = makeLensMatrix(sym_f4)
 
     sym_d12 = Symbol('d_{12}')
@@ -63,42 +77,15 @@ def main():
     sym_d34 = Symbol('d_{34}')
     S34 = makeFreeSpacePropagationMatrix(sym_d34)
 
-    init_printing(order='old')
     II = M4*S34*M3*S23*M2*S12*M1
-    print("=========\n")
-    print(latex(II[0,0]))
-    print(latex(II[0,1]))
-    print(latex(II[1,0]))
-    print(latex(II[1,1]))
-    print("=========\n")
+    print_matrix(II)
 
     II = Matrix([[1,0], [0,1]])
     I1 = M4*S34*M3*S23
     I2 = S12*M1
     M2 = I1.inv()*II*I2.inv()
+    print_matrix(M2)
 
-    print("=========\n")
-    print(latex(M2[0,0]))
-    print(latex(M2[0,1]))
-    print(latex(M2[1,0]))
-    print(latex(M2[1,1]))
-    print("=========\n")
-
-    # M2 = makeLensMatrix(sym_f2)
-    # II = Matrix([[1,0], [0,1]])
-    # I1 = M4*S34
-    # I2 = S23*M2*S12*M1
-    # M3 = I1.inv()*II*I2.inv()
-    # print("=========\n")
-    # print(latex(M3[0,0]))
-    # print("---------\n")
-    # print(latex(M3[0,1]))
-    # print("---------\n")
-    # print(latex(M3[1,0]))
-    # print("---------\n")
-    # print(latex(M3[1,1]))
-    # print("=========\n")
-    
 if __name__ == '__main__':
     main()
 
