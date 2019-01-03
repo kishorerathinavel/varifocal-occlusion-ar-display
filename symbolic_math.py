@@ -1,16 +1,9 @@
 from sympy import *
+from common_functions import *
 # from sympy.abc import x, y
 from numpy.linalg import inv
 import numpy as np
 import inspect
-
-def makeLensMatrix(f):
-    mat = Matrix([[1,0],[-f,1]])
-    return(mat)
-
-def makeFreeSpacePropagationMatrix(d):
-    mat = Matrix([[1,d], [0,1]])
-    return mat
 
 def simulateHowlett():
     sym_f = Symbol('f')
@@ -35,14 +28,7 @@ def simulateHowlett():
     print(M2_arr[1,0])
     print(M2_arr[1,1])
 
-def print_matrix(mat):
-    print("=========\n")
-    print(latex(mat[0,0], order = 'ilex'))
-    print(latex(mat[0,1], order = 'ilex'))
-    print(latex(mat[1,0], order = 'ilex'))
-    print(latex(mat[1,1], order = 'ilex'))
-    print("=========\n")
-    
+   
 def print_matrix_all_formats(mat):
     formats = ['lex', 'grlex', 'grevlex', 'ilex', 'igrlex', 'igrevlex', 'old']
     # ilex, igrlex, igrevlex is good.
@@ -74,7 +60,7 @@ def main():
     S12 = makeFreeSpacePropagationMatrix(sym_d12)
     sym_d23 = Symbol('d_{23}')
     S23 = makeFreeSpacePropagationMatrix(sym_d23)
-    sym_d34 = Symbol('d_{34}')
+    sym_d34 = Symbol('d_{12}')
     S34 = makeFreeSpacePropagationMatrix(sym_d34)
 
     II = M4*S34*M3*S23*M2*S12*M1

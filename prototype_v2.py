@@ -52,7 +52,7 @@ class OD(): # Short for Implemented Optical Design
         self.f2 = calculate_focal_length(O_f2, I_f2)
 
     def calc_magnification(self):
-        self.magnification = 1.0
+        self.magnification = 1.0 # Placeholder instead of actually calculating it
         
 def main():
     IOD = OD()
