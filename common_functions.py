@@ -27,10 +27,8 @@ def makeFreeSpacePropagationMatrix(d):
     return mat
 
 def print_matrix(mat):
-    print("=========\n")
     print(latex(mat[0,0], order = 'ilex'))
     print(latex(mat[0,1], order = 'ilex'))
     print(latex(mat[1,0], order = 'ilex'))
     print(latex(mat[1,1], order = 'ilex'))
-    print("=========\n")
  
