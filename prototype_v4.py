@@ -48,6 +48,15 @@ class OD(): # Short for Implemented Optical Design
         self.rw_magnification = self.m1*self.m2*self.m3*self.m4
         self.d_WI_f4 = self.I4
 
+    def propagate_om(self):
+        self.O2 = self.d_LCoS_f2
+        self.I2 = calculate_image_distance(self.O2, self.f2)
+        self.O3 = self.d_f2_f3 - self.I2
+        self.I3 = calculate_image_distance(self.O3, self.f3)
+        self.O4 = self.d_f3_f4 - self.I3
+        self.I4 = calculate_image_distance(self.O4, self.f4)
+        self.d_OM_f4 = self.I4
+
     def calc_ABCD_matrices(self):
         self.M1 = makeLensMatrix(1/self.f1)
         self.M2 = makeLensMatrix(1/self.f2)
@@ -269,43 +278,31 @@ def main4():
             # Calculate d_WI_f4
             IOD4.propagate_rw_all(IOD4.d_vip_eye)
             # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
-            str = "I1 = %f" %(IOD4.I1)
-            print(str)
-            str = "d_f1_LCoS = %f" % (IOD4.d_f1_LCoS)
-            print(str)
             op.I1_arr[dist_index, soln_index] = IOD4.I1
             op.d_f1_LCoS_arr[dist_index, soln_index] = IOD4.d_f1_LCoS
             # END Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
             str = "d_WI_f4 = %f" % (IOD4.d_WI_f4)
             print(str)
-            op.d_WI_f4_arr[dist_index, soln_index] = I4
+            op.d_WI_f4_arr[dist_index, soln_index] = IOD4.d_WI_f4
             # END Calculate where image of real world is formed
 
             op.mag_arr[dist_index, soln_index] = IOD4.rw_magnification
 
-            if (IOD4.I1 == IOD4.d_fl_LCoS):
-                print("No need to propagate OM separately because rw formed at LCoS")
+            # Calculate where image of occlusion mask
+            if (abs(IOD4.I1 - IOD4.d_f1_LCoS) < 0.01):
+                print("No need to propagate OM separately because rw at vip formed at LCoS")
+                IOD4.d_OM_f4 = IOD4.d_WI_f4
             else:
-                IOD4.propagate_om
-                # Calculate where image of occlusion mask
-            # Calculate d_OM_f4
-            O2 = IOD4.d_LCoS_f2
-            I2 = calculate_image_distance(O2, IOD4.f2)
-            O3 = IOD4.d_f2_f3 - I2
-            I3 = calculate_image_distance(O3, IOD4.f3)
-            O4 = IOD4.d_f3_f4 - I3
-            I4 = calculate_image_distance(O4, IOD4.f4)
-            IOD4.d_OM_f4 = I4
+                print("RW at vip did not form at LCoS")
+                IOD4.propagate_om()
+            # END Calculate where image of occlusion mask
             str = "d_OM_f4 = %f" %(IOD4.d_OM_f4)
             print(str)
             str = "d_W_f1 = %f" % (-IOD4.d_W_f1)
             print(str)
-            str = "magnification = %f" % (mT)
-            print(str)
 
             op.d_OM_f4_arr[dist_index, soln_index] = IOD4.d_OM_f4
             op.d_W_f1_arr[dist_index, soln_index] = -IOD4.d_W_f1
-            # END Calculate where image of occlusion mask
 
             str = "Magnification at all distances:"
             print(str)
@@ -321,5 +318,5 @@ def main4():
         # Calculate magnification
     
 if __name__ == '__main__':
-    main4()
+    main5()
 
