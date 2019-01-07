@@ -26,14 +26,12 @@ class OD(): # Short for Implemented Optical Design
         self.d_vip_eye = 0.0
         self.magnification = 0.0
 
-    def populate_d_eye(self):
-        self.d_W_eye = self.d_vip_eye
+    def populate_d_eye(self, ncurr_dist):
+        self.d_W_eye = ncurr_dist
         self.d_W_f1 = self.d_W_eye - self.d_f4_eye - self.d_f3_f4 - self.d_f2_f3 - self.d_f1_f2
 
     def propagate_rw_all(self, ncurr_dist):
-        self.d_vip_eye = ncurr_dist
-        self.populate_d_eye()
-        self.O1 = self.d_W_f1
+        self.O1 = ncurr_dist
         self.I1 = calculate_image_distance(self.O1, self.f1)
         self.m1 = self.I1/self.O1
         self.O2 = self.d_f1_f2 - self.I1
@@ -146,8 +144,15 @@ def main5():
         str = "d_vip_eye = %f" % curr_dist
         print(str)
 
-        IOD.populate_d_eye()
+        IOD.populate_d_eye(curr_dist)
         IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
+        saveI1 = calculate_image_distance(IOD.d_W_f1, IOD.f1)
+        saveO1 = IOD.d_W_f1
+        savef1 = IOD.f1
+        if(saveI1 - IOD.d_f1_LCoS > 0.01):
+            str = "I1 = %f; d_f1_LCoS = %f" % (saveI1, IOD.d_f1_LCoS)
+            print(str)
+            return
         sym_f2 = Symbol('f_2')
         IOD.f2 = sym_f2
         sym_f3 = Symbol('f_3')
@@ -257,10 +262,15 @@ def main5():
 
             # Calculate where image of real world is formed
             # Calculate d_WI_f4
-            IOD.propagate_rw_all(IOD.d_vip_eye)
+            IOD.populate_d_eye(IOD.d_vip_eye)
+            IOD.propagate_rw_all(IOD.d_W_f1)
             # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
             op.I1_arr[dist_index, soln_index] = IOD.I1
             op.d_f1_LCoS_arr[dist_index, soln_index] = IOD.d_f1_LCoS
+            str = "I1 = %f" % (IOD.I1)
+            print(str)
+            str = "d_f1_LCoS = %f" % (IOD.d_f1_LCoS)
+            print(str)
             # END Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
             str = "d_WI_f4 = %f" % (IOD.d_WI_f4)
             print(str)
@@ -275,6 +285,12 @@ def main5():
                 IOD.d_OM_f4 = IOD.d_WI_f4
             else:
                 print("RW at vip did not form at LCoS")
+                str = "d_vip_eye = %f; d_W_f1 = %f" % (IOD.d_vip_eye, IOD.d_W_f1)
+                print(str)
+                str = "saveI1 = %f; saveO1 = %f; savef1 = %f" % (saveI1, saveO1, savef1)
+                print(str)
+                str = "I1 = %f; O1 = %f; f1 = %f" % (IOD.I1, IOD.O1, IOD.f1)
+                print(str)
                 IOD.propagate_om()
             # END Calculate where image of occlusion mask
             str = "d_OM_f4 = %f" %(IOD.d_OM_f4)
@@ -288,7 +304,8 @@ def main5():
             str = "Magnification at all distances:"
             print(str)
             for ncurr_dist in dists:
-                IOD.propagate_rw_all(ncurr_dist)
+                IOD.populate_d_eye(ncurr_dist)
+                IOD.propagate_rw_all(IOD.d_W_f1)
                 # print(IOD.d_W_f1)
                 # print(IOD.d_WI_f4)
                 print(IOD.rw_magnification)
@@ -323,7 +340,7 @@ def main4():
         str = "d_vip_eye = %f" % curr_dist
         print(str)
 
-        IOD.populate_d_eye()
+        IOD.populate_d_eye(curr_dist)
         IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
         sym_f2 = Symbol('f_2')
         IOD.f2 = sym_f2
@@ -453,7 +470,8 @@ def main4():
 
             # Calculate where image of real world is formed
             # Calculate d_WI_f4
-            IOD.propagate_rw_all(IOD.d_vip_eye)
+            IOD.populate_d_eye(IOD.d_vip_eye)
+            IOD.propagate_rw_all(IOD.d_W_f1)
             # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
             op.I1_arr[dist_index, soln_index] = IOD.I1
             op.d_f1_LCoS_arr[dist_index, soln_index] = IOD.d_f1_LCoS
@@ -484,7 +502,8 @@ def main4():
             str = "Magnification at all distances:"
             print(str)
             for ncurr_dist in dists:
-                IOD.propagate_rw_all(ncurr_dist)
+                IOD.populate_d_eye(ncurr_dist)
+                IOD.propagate_rw_all(IOD.d_W_f1)
                 # print(IOD.d_W_f1)
                 # print(IOD.d_WI_f4)
                 print(IOD.rw_magnification)
@@ -495,5 +514,5 @@ def main4():
         # Calculate magnification
     
 if __name__ == '__main__':
-    main5()
+    main4()
 
