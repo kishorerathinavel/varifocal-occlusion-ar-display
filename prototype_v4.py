@@ -114,6 +114,71 @@ def conv_lol_flat_l(my_input, output_list):
     else:
         return output_list.append(my_input)
 
+def main6():
+    IOD = OD()
+    op = outputs()
+    diop_diff = 0.5
+    min_dist = 25
+    num_dist = 9
+    dists = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
+
+    # Assume that num_solns = 2
+    # All output matrices have num_dist rows and num_soln columns
+    num_soln = 2
+    prev_num_soln = 2
+    std_output_arr = np.zeros((num_dist, num_soln))
+    op.f1_arr = np.copy(std_output_arr)
+    op.f2_arr = np.copy(std_output_arr)
+    op.f3_arr = np.copy(std_output_arr)
+    op.norm_arr = np.copy(std_output_arr)
+    op.I1_arr = np.copy(std_output_arr)
+    op.d_f1_LCoS_arr =  np.copy(std_output_arr)
+    op.d_WI_f4_arr = np.copy(std_output_arr)
+    op.d_OM_f4_arr = np.copy(std_output_arr)
+    op.d_W_f1_arr = np.copy(std_output_arr)
+    op.mag_arr = np.copy(std_output_arr)
+
+    for curr_dist in dists:
+        dist_index = dists.index(curr_dist)
+        IOD.d_vip_eye = curr_dist # Should be > 23
+        str = "d_vip_eye = %f" % curr_dist
+        print(str)
+
+        IOD.populate_d_eye(curr_dist)
+        IOD.O1 = IOD.d_W_f1
+        IOD.I1 = IOD.d_f1_LCoS
+        IOD.f1 = calculate_focal_length(IOD.O1, IOD.I1)
+        m1 = -IOD.I1/IOD.O1
+        IOD.O2 = IOD.d_LCoS_f2
+        IOD.I2 = -(IOD.d_LCoS_f2 + IOD.d_f1_LCoS + IOD.d_W_f1)
+        IOD.f2 = calculate_focal_length(IOD.O2, IOD.I2)
+        m2 = -IOD.I2/IOD.O2
+        mT = m1*m2
+
+        str = "m1 = %f, m2 = %f, mT = %f" % (m1, m2, mT)
+        print(str)
+        return
+
+        II = Matrix([[1,0], [0,1]])
+        IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
+        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+        TT = II
+        IOD.TT = S14
+
+        sym_f3 = Symbol('f_3')
+        IOD.f3 = sym_f3
+        IOD.f4 = 5
+        IOD.calc_ABCD_matrices()
+        IOD.calc_TA()
+        IOD.calc_TA_diff_TT()
+        OO = IOD.OO
+        print_matrix(OO)
+        soln_l = list(solve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f3]))
+        print(soln_l)
+
+        # sym_f2 = Symbol('f_2')
+        # IOD.f2 = sym_f2
+
 def main5():
     IOD = OD()
     op = outputs()
@@ -514,5 +579,5 @@ def main4():
         # Calculate magnification
     
 if __name__ == '__main__':
-    main4()
+    main6()
 
