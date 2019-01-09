@@ -204,6 +204,7 @@ def main5():
     op.mag_arr = np.copy(std_output_arr)
 
     for curr_dist in dists:
+        curr_dist = 200
         dist_index = dists.index(curr_dist)
         IOD.d_vip_eye = curr_dist # Should be > 23
         str = "d_vip_eye = %f" % curr_dist
@@ -230,7 +231,7 @@ def main5():
         IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
         S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
         TT = II
-        IOD.TT = S14
+        IOD.TT = II
 
         IOD.calc_TA_diff_TT()
         OO = IOD.OO
@@ -241,11 +242,31 @@ def main5():
         conv_lol_flat_l(OO_l, flat_OO_l)
 
         # Getting solutions for all equations together
+        # print_matrix(IOD.S12, tex = 'False')
+        # print("\n")
+        # print_matrix(IOD.S23, tex = 'False')
+        # print("\n")
+        # print_matrix(IOD.S34, tex = 'False')
+        # print("\n")
+        # print_matrix(IOD.M1, tex = 'False')
+        # print("\n")
+        # print_matrix(IOD.M2, tex = 'False')
+        # print("\n")
+        # print_matrix(IOD.M3, tex = 'False')
+        # print("\n")
+        # print_matrix(IOD.M4, tex = 'False')
+        # print("\n")
+        # print_matrix(OO, tex='False')
         soln_l = list(nonlinsolve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f2, sym_f3]))
         print("Solutions")
         print(soln_l)
+        print("\n")
         # END Getting solutions for all equations together
 
+        # soln_l = [(7.6172, 7.9074)]
+        # soln_l = [(4.8826, 49.65)]
+        soln_l = [(2.5988, 9.9971)]
+        # soln_l = [(2.6408, 9.9922)]
         # Get the norm of OO = TT - TA for each solution 
         norm_l = []
         for curr_soln in soln_l:
@@ -376,6 +397,7 @@ def main5():
                 print(IOD.rw_magnification)
         
             print("-----------------")
+        return
 
 def main4():
     IOD = OD()
@@ -579,5 +601,5 @@ def main4():
         # Calculate magnification
     
 if __name__ == '__main__':
-    main6()
+    main5()
 

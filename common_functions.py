@@ -26,9 +26,16 @@ def makeFreeSpacePropagationMatrix(d):
     mat = Matrix([[1,d], [0,1]])
     return mat
 
-def print_matrix(mat):
-    print(latex(mat[0,0], order = 'ilex'))
-    print(latex(mat[0,1], order = 'ilex'))
-    print(latex(mat[1,0], order = 'ilex'))
-    print(latex(mat[1,1], order = 'ilex'))
+def print_matrix(mat, tex):
+    print(tex)
+    if(tex == 'True'):
+        print(latex(mat[0,0], order = 'ilex'))
+        print(latex(mat[0,1], order = 'ilex'))
+        print(latex(mat[1,0], order = 'ilex'))
+        print(latex(mat[1,1], order = 'ilex'))
+    else:
+        print(mat[0,0])
+        print(mat[0,1])
+        print(mat[1,0])
+        print(mat[1,1])
  
