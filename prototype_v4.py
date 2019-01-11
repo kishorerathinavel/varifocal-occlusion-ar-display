@@ -50,6 +50,7 @@ class OD(): # Short for Implemented Optical Design
         self.m4 = self.I4/self.O4
         self.rw_magnification = self.m1*self.m2*self.m3*self.m4
         self.d_WI_f4 = self.I4
+        self.d_WI_f1 = self.d_WI_f4 + self.d_f1_f2 + self.d_f2_f3 + self.d_f3_f4
 
     def propagate_om(self):
         self.O2 = self.d_LCoS_f2
@@ -96,14 +97,14 @@ def convert_sympy_mutableDenseMatrix_custom_prntableList(denseMatrix):
     denseMatrix_l = r_denseMatrix_np.tolist()
     return denseMatrix_l
 
-def calc_perceptually_useful_distances(min_dist, diop_diff, num_dist):
+def calc_perceptually_useful_distances(max_dist, diop_diff, num_dist):
     # Assuming that min_dist is specified in cm
-    min_diop_dist = convert_cm2dpt(min_dist)
-    prev_diop_dist = min_diop_dist
+    max_diop_dist = convert_cm2dpt(max_dist)
+    prev_diop_dist = max_diop_dist
     dists = []
-    dists.append(min_dist)
+    dists.append(max_dist)
     for iter in range(1,num_dist):
-        next_diop_dist = prev_diop_dist - diop_diff
+        next_diop_dist = prev_diop_dist + diop_diff
         next_dist = convert_dpt2cm(next_diop_dist)
         dists.append(next_dist)
         prev_diop_dist = next_diop_dist
@@ -123,7 +124,7 @@ def custom_prnt(str):
     if(prnt_flag == 'True'):
         print(str)
 
-def graph_outputs(op, dists, soln_l, outputs_dir, ylabels):
+def graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr):
     num_soln = len(soln_l)
     num_dists = len(dists)
     iter_ylabel = 0
@@ -146,6 +147,9 @@ def graph_outputs(op, dists, soln_l, outputs_dir, ylabels):
             plt.plot(dists, value)
             plt.ylabel(ylabels[iter_ylabel])
             plt.xlabel("distance")
+            curr_ylim = ylim_arr[iter_ylabel]
+            if(curr_ylim[0] != curr_ylim[1]):
+                plt.ylim(curr_ylim[0], curr_ylim[1])
             plt.savefig(str)
         elif(dimensions == 2):
             for iter_soln in range(0, num_soln):
@@ -154,6 +158,9 @@ def graph_outputs(op, dists, soln_l, outputs_dir, ylabels):
                 plt.plot(dists, value[:,iter_soln])
                 plt.ylabel(ylabels[iter_ylabel])
                 plt.xlabel("distance")
+                curr_ylim = ylim_arr[iter_ylabel]
+                if(curr_ylim[0] != curr_ylim[1]):
+                    plt.ylim(curr_ylim[0], curr_ylim[1])
                 plt.savefig(str)
         elif(dimensions == 3):
             for iter_dist in range(0, num_dists):
@@ -163,6 +170,9 @@ def graph_outputs(op, dists, soln_l, outputs_dir, ylabels):
                     plt.plot(dists, value[iter_dist,iter_soln, :])
                     plt.ylabel(ylabels[iter_ylabel])
                     plt.xlabel("distance")
+                    curr_ylim = ylim_arr[iter_ylabel]
+                    if(curr_ylim[0] != curr_ylim[1]):
+                        plt.ylim(curr_ylim[0], curr_ylim[1])
                     plt.savefig(str)
         iter_ylabel = iter_ylabel + 1
         
@@ -245,10 +255,10 @@ solve using python solver
 def main5():
     IOD = OD()
     op = outputs()
-    diop_diff = 0.5
-    min_dist = 25
-    num_dist = 8
-    dists = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
+    diop_diff = 0.3
+    max_dist = convert_m2cm(10)
+    num_dist = 15
+    dists = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
     std_output_arr = np.zeros(num_dist)
     op.f1_arr = np.copy(std_output_arr)
@@ -272,6 +282,7 @@ def main5():
     op.img_dist = np.copy(std_output_arr)
 
     ylabels = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "f3", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
+    ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1]]
     output_arrays_resized = 'False'
 
     for curr_dist in dists:
@@ -325,7 +336,7 @@ def main5():
         custom_prnt("Norm of solutions")
         custom_prnt(rounded_norm_l)
         # END Get the norm of OO = TT - TA for each solution
-
+    
         # Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
         if(output_arrays_resized == 'False'):
             num_soln = len(soln_l)
@@ -436,13 +447,24 @@ def main5():
             custom_prnt(str)
             for ncurr_dist in dists:
                 ncurr_dist_index = dists.index(ncurr_dist)
-                IOD.populate_d_eye(ncurr_dist)
-                IOD.propagate_rw_all(IOD.d_W_f1)
+                # temp_d_f2_f3 = IOD.d_f2_f3
+                # IOD.d_f2_f3 = IOD.f1 + IOD.f2 + IOD.f3 + IOD.f4
+                IOD.propagate_rw_all(ncurr_dist) # Assume that ncurr_dist = d_W_f1
                 custom_prnt(IOD.rw_magnification)
                 op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
-                op.img_dist[dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
-        
-    graph_outputs(op, dists, soln_l, outputs_dir, ylabels)
+                diff_dist = IOD.d_WI_f4 + ncurr_dist
+                op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
+                if(abs(IOD.rw_magnification - 1) < 0.1):
+                    print(ncurr_dist)
+                    print(IOD.d_WI_f4)
+                    print(diff_dist)
+                    # print(ncurr_dist)
+                    # print(IOD.rw_magnification)
+                    # print(IOD.d_WI_f4)
+                # IOD.d_f2_f3 = temp_d_f2_f3
+                print("\n")
+
+    graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
 
 '''
 f1 = f4
@@ -478,6 +500,7 @@ def main4():
     op.img_dist = np.copy(std_output_arr)
 
     ylabels = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
+    ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [0,-200]]
     output_arrays_resized = 'False'
 
 
@@ -498,8 +521,8 @@ def main4():
         II = Matrix([[1,0], [0,1]])
         IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
         S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-        TT = S14
-        IOD.TT = S14
+        TT = II
+        IOD.TT = II
 
         IOD.calc_TA_diff_TT()
         OO = IOD.OO
@@ -643,7 +666,7 @@ def main4():
                 op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
                 op.img_dist[dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
         
-    graph_outputs(op, dists, unique_soln_l, outputs_dir, ylabels)
+    graph_outputs(op, dists, unique_soln_l, outputs_dir, ylabels, ylim_arr)
 
 '''
 f3 = f4 = 5
@@ -678,6 +701,7 @@ def main9():
     op.img_dist = np.copy(std_output_arr)
 
     ylabels = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
+    ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [0,-200]]
     output_arrays_resized = 'False'
 
     for curr_dist in dists:
@@ -842,8 +866,87 @@ def main9():
                 op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
                 op.img_dist[dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
         
-    graph_outputs(op, dists, soln_l, outputs_dir, ylabels)
+    graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
 
+'''
+Modelling the optical system from
+Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
+'''
+def main10():
+    IOD = OD()
+    op = outputs()
+    diop_diff = 0.3
+    max_dist = convert_m2cm(10)
+    num_dist = 15
+    dists = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+
+    # Assume that num_solns = 2
+    # All output matrices have num_dist rows and num_soln columns
+    std_output_arr = np.zeros(num_dist)
+    op.mag_arr = np.copy(std_output_arr)
+    op.img_dist = np.copy(std_output_arr)
+
+    ylabels = ["mag_arr", "img_dist"]
+    ylim_arr = [[-1.5, 1.5], [-1, -1]]
+
+    IOD.f1 = 4
+    IOD.f2 = 4
+    IOD.f3 = 4
+    IOD.f4 = 4
+
+    howlett_d = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
+    # howlett_t = howlett_d + 4*IOD.f1
+    howlett_t = 4*IOD.f1
+
+    IOD.d_f2_f3 = howlett_t
+
+    IOD.calc_ABCD_matrices()
+    IOD.calc_TA()
+    II = Matrix([[1,0], [0,1]])
+    IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
+    S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+    TT = II
+    IOD.TT = II
+
+    IOD.calc_TA_diff_TT()
+    OO = IOD.OO
+    OO_l = OO.tolist()
+    flat_OO_l = []
+    conv_lol_flat_l(OO_l, flat_OO_l)
+
+    str = "Magnification at all distances:"
+    custom_prnt(str)
+    # dists = [200]
+    for ncurr_dist in dists:
+        ncurr_dist_index = dists.index(ncurr_dist)
+        IOD.propagate_rw_all(ncurr_dist)
+        print(ncurr_dist)
+        # print("f1")
+        # print(IOD.O1)
+        # print(IOD.I1)
+        # print("f2")
+        # print(IOD.O2)
+        # print(IOD.I2)
+        # print("f3")
+        # print(IOD.O3)
+        # print(IOD.I3)
+        # print("f4")
+        # print(IOD.O4)
+        # print(IOD.I4)
+        print(IOD.rw_magnification)
+        print(IOD.d_WI_f4)
+        print("\n")
+        # print(IOD.d_WI_f1)
+        custom_prnt(IOD.rw_magnification)
+        custom_prnt(ncurr_dist)
+        custom_prnt(-IOD.d_WI_f4)
+        custom_prnt(-IOD.d_WI_f1)
+        custom_prnt("\n")
+        op.mag_arr[ncurr_dist_index] = IOD.rw_magnification
+        op.img_dist[ncurr_dist_index] = IOD.d_WI_f4
+
+    # soln_l = []
+    # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
 
 if __name__ == '__main__':
     main5()
