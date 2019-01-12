@@ -15,7 +15,7 @@ class OD(): # Short for Implemented Optical Design
         self.d_f1_LCoS = 4.0 # Minimum possible
         self.d_LCoS_f2 = 4.0 # Minimum possible
         self.d_f1_f2 = self.d_f1_LCoS + self.d_LCoS_f2
-        self.d_f2_f3 = 3.0 # Guess
+        self.d_f2_f3 = 16 # Guess
         self.d_f3_f4 = self.d_f1_f2
         self.d_f4_eye = 2.0
 
@@ -257,7 +257,7 @@ def main5():
     op = outputs()
     diop_diff = 0.3
     max_dist = convert_m2cm(10)
-    num_dist = 15
+    num_dist = 10
     dists = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
     std_output_arr = np.zeros(num_dist)
@@ -285,6 +285,7 @@ def main5():
     ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1]]
     output_arrays_resized = 'False'
 
+    # for IOD.d_f2_f3 in range(0, 20):
     for curr_dist in dists:
         dist_index = dists.index(curr_dist)
         IOD.d_vip_eye = curr_dist # Should be > 23
@@ -336,7 +337,7 @@ def main5():
         custom_prnt("Norm of solutions")
         custom_prnt(rounded_norm_l)
         # END Get the norm of OO = TT - TA for each solution
-    
+
         # Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
         if(output_arrays_resized == 'False'):
             num_soln = len(soln_l)
@@ -445,26 +446,40 @@ def main5():
 
             str = "Magnification at all distances:"
             custom_prnt(str)
+            diff_l = []
             for ncurr_dist in dists:
                 ncurr_dist_index = dists.index(ncurr_dist)
                 # temp_d_f2_f3 = IOD.d_f2_f3
                 # IOD.d_f2_f3 = IOD.f1 + IOD.f2 + IOD.f3 + IOD.f4
-                IOD.propagate_rw_all(ncurr_dist) # Assume that ncurr_dist = d_W_f1
+
+                IOD.populate_d_eye(ncurr_dist)
+                # IOD.d_W_f1 = ncurr_dist
+
+                IOD.propagate_rw_all(IOD.d_W_f1) # Assume that ncurr_dist = d_W_f1
+                diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
+                diff_l.append(diff_dist)
+                # if(abs(IOD.rw_magnification - 1) < 0.1):
+                    # print(ncurr_dist)
+                    # print(-IOD.d_WI_f4)
+                    # print(IOD.rw_magnification)
+                    # print(IOD.d_W_f1)
+                    # print(-IOD.d_WI_f4)
+                    # print(diff_dist)
+                    # print("\n")
+                # IOD.d_f2_f3 = temp_d_f2_f3
                 custom_prnt(IOD.rw_magnification)
                 op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
-                diff_dist = IOD.d_WI_f4 + ncurr_dist
+                diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
                 op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
-                if(abs(IOD.rw_magnification - 1) < 0.1):
-                    print(ncurr_dist)
-                    print(IOD.d_WI_f4)
-                    print(diff_dist)
-                    # print(ncurr_dist)
-                    # print(IOD.rw_magnification)
-                    # print(IOD.d_WI_f4)
-                # IOD.d_f2_f3 = temp_d_f2_f3
-                print("\n")
 
-    graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
+            if(len(diff_l) != 0):
+                diff_arr = np.array(diff_l, dtype=np.float64)
+                print(diff_l)
+                print(np.mean(diff_arr))
+                print(np.std(diff_arr))
+                print('\n')
+
+    # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
 
 '''
 f1 = f4
@@ -658,15 +673,30 @@ def main4():
 
             str = "Magnification at all distances:"
             custom_prnt(str)
+            diff_l = []
             for ncurr_dist in dists:
                 ncurr_dist_index = dists.index(ncurr_dist)
                 IOD.populate_d_eye(ncurr_dist)
                 IOD.propagate_rw_all(IOD.d_W_f1)
+                if(abs(IOD.rw_magnification - 1) < 0.1):
+                    diff_dist = IOD.d_WI_f4 + ncurr_dist
+                    diff_l.append(diff_dist)
                 custom_prnt(IOD.rw_magnification)
                 op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
-                op.img_dist[dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
-        
-    graph_outputs(op, dists, unique_soln_l, outputs_dir, ylabels, ylim_arr)
+                diff_dist = IOD.d_WI_f4 + ncurr_dist
+                op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
+
+                # custom_prnt(IOD.rw_magnification)
+                # op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
+                # op.img_dist[dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
+
+            if(len(diff_l) != 0):
+                diff_arr = np.array(diff_l, dtype=np.float64)
+                print(np.mean(diff_arr))
+                print(np.std(diff_arr))
+                print('\n')
+                
+    # graph_outputs(op, dists, unique_soln_l, outputs_dir, ylabels, ylim_arr)
 
 '''
 f3 = f4 = 5
@@ -917,34 +947,45 @@ def main10():
     str = "Magnification at all distances:"
     custom_prnt(str)
     # dists = [200]
+    diff_l = []
     for ncurr_dist in dists:
         ncurr_dist_index = dists.index(ncurr_dist)
         IOD.propagate_rw_all(ncurr_dist)
-        print(ncurr_dist)
-        # print("f1")
-        # print(IOD.O1)
-        # print(IOD.I1)
-        # print("f2")
-        # print(IOD.O2)
-        # print(IOD.I2)
-        # print("f3")
-        # print(IOD.O3)
-        # print(IOD.I3)
-        # print("f4")
-        # print(IOD.O4)
-        # print(IOD.I4)
-        print(IOD.rw_magnification)
-        print(IOD.d_WI_f4)
-        print("\n")
-        # print(IOD.d_WI_f1)
+        if(abs(IOD.rw_magnification - 1) < 0.1):
+            # print("f1")
+            # print(IOD.O1)
+            # print(IOD.I1)
+            # print("f2")
+            # print(IOD.O2)
+            # print(IOD.I2)
+            # print("f3")
+            # print(IOD.O3)
+            # print(IOD.I3)
+            # print("f4")
+            # print(IOD.O4)
+            # print(IOD.I4)
+            # print(ncurr_dist)
+            # print(-IOD.d_WI_f4)
+            diff_dist = IOD.d_WI_f4 + ncurr_dist
+            diff_l.append(diff_dist)
+            # print(diff_dist)
+            # print(IOD.rw_magnification)
+            # print("\n")
+            # print(IOD.d_WI_f1)
+            custom_prnt(IOD.rw_magnification)
+            custom_prnt(ncurr_dist)
+            custom_prnt(IOD.d_WI_f4)
+            custom_prnt(IOD.d_WI_f1)
+            custom_prnt("\n")
         custom_prnt(IOD.rw_magnification)
-        custom_prnt(ncurr_dist)
-        custom_prnt(-IOD.d_WI_f4)
-        custom_prnt(-IOD.d_WI_f1)
-        custom_prnt("\n")
         op.mag_arr[ncurr_dist_index] = IOD.rw_magnification
-        op.img_dist[ncurr_dist_index] = IOD.d_WI_f4
+        diff_dist = IOD.d_WI_f4 + ncurr_dist
+        op.img_dist[ncurr_dist_index] = diff_dist
 
+    diff_arr = np.array(diff_l, dtype=np.float64)
+    print(np.mean(diff_arr))
+    print(np.std(diff_arr))
+ 
     # soln_l = []
     # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
 
