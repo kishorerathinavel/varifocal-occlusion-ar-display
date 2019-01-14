@@ -255,9 +255,9 @@ solve using python solver
 def main5():
     IOD = OD()
     op = outputs()
-    diop_diff = 0.3
+    diop_diff = 0.6
     max_dist = convert_m2cm(10)
-    num_dist = 10
+    num_dist = 5
     dists = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
     std_output_arr = np.zeros(num_dist)
@@ -285,199 +285,206 @@ def main5():
     ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1]]
     output_arrays_resized = 'False'
 
-    # for IOD.d_f2_f3 in range(0, 20):
-    for curr_dist in dists:
-        dist_index = dists.index(curr_dist)
-        IOD.d_vip_eye = curr_dist # Should be > 23
-        str = "d_vip_eye = %f" % curr_dist
-        custom_prnt(str)
+    for IOD.d_f2_f3 in range(3, 18, 2):
+        str = "d_f2_f3 = %0.2f ========================" % (IOD.d_f2_f3)
+        print(str)
+        for curr_dist in dists:
+            str = "d_vip_eye = %0.2f ========================" % (curr_dist)
+            print(str)
+            dist_index = dists.index(curr_dist)
+            IOD.d_vip_eye = curr_dist # Should be > 23
+            str = "d_vip_eye = %f" % curr_dist
+            custom_prnt(str)
 
-        IOD.populate_d_eye(curr_dist)
-        IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
-        op.f1_arr[dist_index] = IOD.f1
-        sym_f2 = Symbol('f_2')
-        IOD.f2 = sym_f2
-        sym_f3 = Symbol('f_3')
-        IOD.f3 = sym_f3
-        IOD.f4 = 5
-        IOD.calc_ABCD_matrices()
-        IOD.calc_TA()
-
-        II = Matrix([[1,0], [0,1]])
-        IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-        TT = II
-        IOD.TT = II
-
-        IOD.calc_TA_diff_TT()
-        OO = IOD.OO
-
-        OO_l = OO.tolist()
-        flat_OO_l = []
-        conv_lol_flat_l(OO_l, flat_OO_l)
-
-        soln_l = list(nonlinsolve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f2, sym_f3]))
-        custom_prnt("Solutions")
-        custom_prnt(soln_l)
-        custom_prnt("\n")
-        # END Getting solutions for all equations together
-
-        # Get the norm of OO = TT - TA for each solution 
-        norm_l = []
-        for curr_soln in soln_l:
-            IOD.f2 = curr_soln[0]
-            IOD.f3 = curr_soln[1]
+            IOD.populate_d_eye(curr_dist)
+            IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
+            op.f1_arr[dist_index] = IOD.f1
+            sym_f2 = Symbol('f_2')
+            IOD.f2 = sym_f2
+            sym_f3 = Symbol('f_3')
+            IOD.f3 = sym_f3
+            IOD.f4 = 5
             IOD.calc_ABCD_matrices()
             IOD.calc_TA()
+
+            II = Matrix([[1,0], [0,1]])
+            IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
+            S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+            TT = II
+            IOD.TT = II
+
             IOD.calc_TA_diff_TT()
-            IOD.calc_OO_norm()
-            norm_l.append(IOD.norm)
-        rounded_norm_l = [round(elem,2) for elem in norm_l]
-        # custom_prnt(type(rounded_norm_l))
-        custom_prnt("Norm of solutions")
-        custom_prnt(rounded_norm_l)
-        # END Get the norm of OO = TT - TA for each solution
+            OO = IOD.OO
 
-        # Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
-        if(output_arrays_resized == 'False'):
-            num_soln = len(soln_l)
-            if(prev_num_soln < num_soln):
-                num_new_colns = num_soln - prev_num_soln
-                new_cols = np.zeros((num_dist, num_new_colns))
-                op.f2_arr = np.hstack((op.f2_arr, new_cols))
-                op.f3_arr = np.hstack((op.f2_arr, new_cols))
-                op.norm_arr = np.hstack((op.norm_arr, new_cols))
-                op.I1_arr = np.hstack((op.I1_arr, new_cols))
-                op.d_WI_f4_arr = np.hstack((op.d_WI_f4_arr, new_cols))
-                op.d_OM_f4_arr = np.hstack((op.d_OM_f4_arr, new_cols))
+            OO_l = OO.tolist()
+            flat_OO_l = []
+            conv_lol_flat_l(OO_l, flat_OO_l)
 
-                new_cols = np.zeros((num_dist, num_new_colns, num_dist))
-                op.mag_arr = np.hstack((op.mag_arr, new_cols))
-                op.img_dist = np.hstack((op.img_dist, new_cols))
-        # END Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
-
-        for curr_soln in soln_l:
-            soln_index = soln_l.index(curr_soln)
-            IOD.f2 = curr_soln[0]
-            IOD.f3 = curr_soln[1]
-            op.f2_arr[dist_index, soln_index] = IOD.f2
-            op.f3_arr[dist_index, soln_index] = IOD.f3
-
+            soln_l = list(nonlinsolve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f2, sym_f3]))
+            custom_prnt("Solutions")
+            custom_prnt(soln_l)
             custom_prnt("\n")
-            str = "f1 = %f cm" % (IOD.f1)
-            custom_prnt(str)
-            str = "f1 = %f D" % (convert_cm2dpt(IOD.f1))
-            custom_prnt(str)
-            str = "f2 = %f cm" % (IOD.f2)
-            custom_prnt(str)
-            str = "f2 = %f D" % (convert_cm2dpt(IOD.f2))
-            custom_prnt(str)
-            str = "f3 = %f cm" % (IOD.f3)
-            custom_prnt(str)
-            str = "f3 = %f D" % (convert_cm2dpt(IOD.f3))
-            custom_prnt(str)
+            # END Getting solutions for all equations together
 
-            # Verify that TA ~= TT
-            IOD.calc_ABCD_matrices()
-            IOD.calc_TA()
-            IOD.calc_TA_diff_TT()
-            IOD.calc_OO_norm()
+            # Get the norm of OO = TT - TA for each solution 
+            norm_l = []
+            for curr_soln in soln_l:
+                IOD.f2 = curr_soln[0]
+                IOD.f3 = curr_soln[1]
+                IOD.calc_ABCD_matrices()
+                IOD.calc_TA()
+                IOD.calc_TA_diff_TT()
+                IOD.calc_OO_norm()
+                norm_l.append(IOD.norm)
+            rounded_norm_l = [round(elem,2) for elem in norm_l]
+            # custom_prnt(type(rounded_norm_l))
+            custom_prnt("Norm of solutions")
+            custom_prnt(rounded_norm_l)
+            # END Get the norm of OO = TT - TA for each solution
 
-            TA_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
-            str = "Actual Transfer matrix:"
-            custom_prnt(str)
-            custom_prnt(TA_l)
+            # Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
+            if(output_arrays_resized == 'False'):
+                num_soln = len(soln_l)
+                if(prev_num_soln < num_soln):
+                    num_new_colns = num_soln - prev_num_soln
+                    new_cols = np.zeros((num_dist, num_new_colns))
+                    op.f2_arr = np.hstack((op.f2_arr, new_cols))
+                    op.f3_arr = np.hstack((op.f2_arr, new_cols))
+                    op.norm_arr = np.hstack((op.norm_arr, new_cols))
+                    op.I1_arr = np.hstack((op.I1_arr, new_cols))
+                    op.d_WI_f4_arr = np.hstack((op.d_WI_f4_arr, new_cols))
+                    op.d_OM_f4_arr = np.hstack((op.d_OM_f4_arr, new_cols))
 
-            TT_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
-            str = "Target Transfer matrix:"
-            custom_prnt(str)
-            custom_prnt(TT_l)
+                    new_cols = np.zeros((num_dist, num_new_colns, num_dist))
+                    op.mag_arr = np.hstack((op.mag_arr, new_cols))
+                    op.img_dist = np.hstack((op.img_dist, new_cols))
+                output_arrays_resized = 'True'
+            # END Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
 
-            OO_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
-            str = "residual matrix"
-            custom_prnt(str)
-            custom_prnt(OO_l)
-            rounded_norm = round(IOD.norm, 2)
-            op.norm_arr[dist_index, soln_index] = rounded_norm
-            str = "norm = %f" % (rounded_norm)
-            custom_prnt(str)
-            # END Verify that TT ~= TA
+            for curr_soln in soln_l:
+                str = "curr_soln_index = %d ========================" % (soln_l.index(curr_soln))
+                print(str)
+                soln_index = soln_l.index(curr_soln)
+                IOD.f2 = curr_soln[0]
+                IOD.f3 = curr_soln[1]
+                op.f2_arr[dist_index, soln_index] = IOD.f2
+                op.f3_arr[dist_index, soln_index] = IOD.f3
 
-            # Calculate where image of real world is formed
-            # Calculate d_WI_f4
-            IOD.populate_d_eye(IOD.d_vip_eye)
-            IOD.propagate_rw_all(IOD.d_W_f1)
-            # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
-            op.I1_arr[dist_index, soln_index] = IOD.I1
-            op.d_f1_LCoS_arr[dist_index] = IOD.d_f1_LCoS
-            str = "I1 = %f" % (IOD.I1)
-            custom_prnt(str)
-            str = "d_f1_LCoS = %f" % (IOD.d_f1_LCoS)
-            custom_prnt(str)
-            # END Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
-            str = "d_WI_f4 = %f" % (IOD.d_WI_f4)
-            custom_prnt(str)
-            op.d_WI_f4_arr[dist_index, soln_index] = IOD.d_WI_f4
-            # END Calculate where image of real world is formed
-
-            op.mag_arr[dist_index, soln_index] = IOD.rw_magnification
-
-            # Calculate where image of occlusion mask
-            if (abs(IOD.I1 - IOD.d_f1_LCoS) < 0.01):
-                custom_prnt("No need to propagate OM separately because rw at vip formed at LCoS")
-                IOD.d_OM_f4 = IOD.d_WI_f4
-            else:
-                custom_prnt("RW at vip did not form at LCoS")
-                str = "d_vip_eye = %f; d_W_f1 = %f" % (IOD.d_vip_eye, IOD.d_W_f1)
+                custom_prnt("\n")
+                str = "f1 = %f cm" % (IOD.f1)
                 custom_prnt(str)
-                str = "saveI1 = %f; saveO1 = %f; savef1 = %f" % (saveI1, saveO1, savef1)
+                str = "f1 = %f D" % (convert_cm2dpt(IOD.f1))
                 custom_prnt(str)
-                str = "I1 = %f; O1 = %f; f1 = %f" % (IOD.I1, IOD.O1, IOD.f1)
+                str = "f2 = %f cm" % (IOD.f2)
                 custom_prnt(str)
-                IOD.propagate_om()
-            # END Calculate where image of occlusion mask
-            str = "d_OM_f4 = %f" %(IOD.d_OM_f4)
-            custom_prnt(str)
-            str = "d_W_f1 = %f" % (-IOD.d_W_f1)
-            custom_prnt(str)
+                str = "f2 = %f D" % (convert_cm2dpt(IOD.f2))
+                custom_prnt(str)
+                str = "f3 = %f cm" % (IOD.f3)
+                custom_prnt(str)
+                str = "f3 = %f D" % (convert_cm2dpt(IOD.f3))
+                custom_prnt(str)
 
-            op.d_OM_f4_arr[dist_index, soln_index] = IOD.d_OM_f4
-            op.d_W_f1_arr[dist_index] = -IOD.d_W_f1
+                # Verify that TA ~= TT
+                IOD.calc_ABCD_matrices()
+                IOD.calc_TA()
+                IOD.calc_TA_diff_TT()
+                IOD.calc_OO_norm()
 
-            str = "Magnification at all distances:"
-            custom_prnt(str)
-            diff_l = []
-            for ncurr_dist in dists:
-                ncurr_dist_index = dists.index(ncurr_dist)
-                # temp_d_f2_f3 = IOD.d_f2_f3
-                # IOD.d_f2_f3 = IOD.f1 + IOD.f2 + IOD.f3 + IOD.f4
+                TA_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
+                str = "Actual Transfer matrix:"
+                custom_prnt(str)
+                custom_prnt(TA_l)
 
-                IOD.populate_d_eye(ncurr_dist)
-                # IOD.d_W_f1 = ncurr_dist
+                TT_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
+                str = "Target Transfer matrix:"
+                custom_prnt(str)
+                custom_prnt(TT_l)
 
-                IOD.propagate_rw_all(IOD.d_W_f1) # Assume that ncurr_dist = d_W_f1
-                diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
-                diff_l.append(diff_dist)
-                # if(abs(IOD.rw_magnification - 1) < 0.1):
-                    # print(ncurr_dist)
-                    # print(-IOD.d_WI_f4)
-                    # print(IOD.rw_magnification)
-                    # print(IOD.d_W_f1)
-                    # print(-IOD.d_WI_f4)
-                    # print(diff_dist)
-                    # print("\n")
-                # IOD.d_f2_f3 = temp_d_f2_f3
-                custom_prnt(IOD.rw_magnification)
-                op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
-                diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
-                op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
+                OO_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
+                str = "residual matrix"
+                custom_prnt(str)
+                custom_prnt(OO_l)
+                rounded_norm = round(IOD.norm, 2)
+                op.norm_arr[dist_index, soln_index] = rounded_norm
+                str = "norm = %f" % (rounded_norm)
+                custom_prnt(str)
+                # END Verify that TT ~= TA
 
-            if(len(diff_l) != 0):
+                # Calculate where image of real world is formed
+                # Calculate d_WI_f4
+                IOD.populate_d_eye(IOD.d_vip_eye)
+                IOD.propagate_rw_all(IOD.d_W_f1)
+                # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
+                op.I1_arr[dist_index, soln_index] = IOD.I1
+                op.d_f1_LCoS_arr[dist_index] = IOD.d_f1_LCoS
+                str = "I1 = %f" % (IOD.I1)
+                custom_prnt(str)
+                str = "d_f1_LCoS = %f" % (IOD.d_f1_LCoS)
+                custom_prnt(str)
+                # END Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
+                str = "d_WI_f4 = %f" % (IOD.d_WI_f4)
+                custom_prnt(str)
+                op.d_WI_f4_arr[dist_index, soln_index] = IOD.d_WI_f4
+                # END Calculate where image of real world is formed
+
+                op.mag_arr[dist_index, soln_index] = IOD.rw_magnification
+
+                # Calculate where image of occlusion mask
+                if (abs(IOD.I1 - IOD.d_f1_LCoS) < 0.01):
+                    custom_prnt("No need to propagate OM separately because rw at vip formed at LCoS")
+                    IOD.d_OM_f4 = IOD.d_WI_f4
+                else:
+                    custom_prnt("RW at vip did not form at LCoS")
+                    str = "d_vip_eye = %f; d_W_f1 = %f" % (IOD.d_vip_eye, IOD.d_W_f1)
+                    custom_prnt(str)
+                    str = "saveI1 = %f; saveO1 = %f; savef1 = %f" % (saveI1, saveO1, savef1)
+                    custom_prnt(str)
+                    str = "I1 = %f; O1 = %f; f1 = %f" % (IOD.I1, IOD.O1, IOD.f1)
+                    custom_prnt(str)
+                    IOD.propagate_om()
+                # END Calculate where image of occlusion mask
+                str = "d_OM_f4 = %f" %(IOD.d_OM_f4)
+                custom_prnt(str)
+                str = "d_W_f1 = %f" % (-IOD.d_W_f1)
+                custom_prnt(str)
+
+                op.d_OM_f4_arr[dist_index, soln_index] = IOD.d_OM_f4
+                op.d_W_f1_arr[dist_index] = -IOD.d_W_f1
+
+                str = "Magnification at all distances:"
+                custom_prnt(str)
+                diff_l = []
+                mag_l = []
+                for ncurr_dist in dists:
+                    ncurr_dist_index = dists.index(ncurr_dist)
+
+                    # IOD.populate_d_eye(ncurr_dist)
+                    IOD.d_W_f1 = ncurr_dist
+
+                    IOD.propagate_rw_all(IOD.d_W_f1) # Assume that ncurr_dist = d_W_f1
+
+                    diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
+                    diff_l.append(diff_dist)
+                    op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
+
+                    mag_l.append(IOD.rw_magnification)
+                    op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
+
+
+
+                mag_l_rounded = [round(elem,2) for elem in mag_l]
+                # print(mag_l_rounded)
+                mag_arr = np.array(mag_l, dtype=np.float64)
+
+                diff_l_rounded = [round(elem,2) for elem in diff_l]
+                # print(diff_l_rounded)
                 diff_arr = np.array(diff_l, dtype=np.float64)
-                print(diff_l)
-                print(np.mean(diff_arr))
-                print(np.std(diff_arr))
+
+                str = 'Avg(mag): %0.2f  Std(mag): %0.2f  Avg(dif): %0.2f  Std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
+                print(str)
                 print('\n')
+
+                # Collect the average difference of the better solution
 
     # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
 
@@ -489,10 +496,10 @@ d12 = d34
 def main4():
     IOD = OD()
     op = outputs()
-    diop_diff = 0.5
-    min_dist = 25
-    num_dist = 8
-    dists = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
+    diop_diff = 0.6
+    max_dist = convert_m2cm(10)
+    num_dist = 5
+    dists = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
     std_output_arr = np.zeros(num_dist)
     op.f1_arr = np.copy(std_output_arr)
@@ -518,185 +525,203 @@ def main4():
     ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [0,-200]]
     output_arrays_resized = 'False'
 
+    for IOD.d_f2_f3 in range(15, 18):
+        str = "d_f2_f3 = %0.2f ========================" % (IOD.d_f2_f3)
+        print(str)
+        for curr_dist in dists:
+            str = "d_vip_eye = %0.2f ========================" % (curr_dist)
+            print(str)
+            dist_index = dists.index(curr_dist)
+            IOD.d_vip_eye = curr_dist # Should be > 23
+            str = "d_vip_eye = %f" % curr_dist
+            custom_prnt(str)
 
-    for curr_dist in dists:
-        dist_index = dists.index(curr_dist)
-        IOD.d_vip_eye = curr_dist # Should be > 23
-        str = "d_vip_eye = %f" % curr_dist
-        custom_prnt(str)
-
-        IOD.populate_d_eye(curr_dist)
-        IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
-        sym_f2 = Symbol('f_2')
-        IOD.f2 = sym_f2
-        IOD.prototype_v4_populate_dependent_focalLengths()
-        IOD.calc_ABCD_matrices()
-        IOD.calc_TA()
-
-        II = Matrix([[1,0], [0,1]])
-        IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-        TT = II
-        IOD.TT = II
-
-        IOD.calc_TA_diff_TT()
-        OO = IOD.OO
-
-        # custom_prnt_matrix(OO)
-        OO_l = OO.tolist()
-        flat_OO_l = []
-        conv_lol_flat_l(OO_l, flat_OO_l)
-
-        # Getting solutions for all equations together
-        soln_l = list(nonlinsolve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f2]))
-        # END Getting solutions for all equations together
-
-        # Converting from sympy set,tuple to python list
-        soln_l2 = []
-        conv_lol_flat_l(soln_l, soln_l2)
-        # END Converting from sympy set to python list
-
-        # Extracting unique solutions
-        rounded_soln_l = [round(elem,2) for elem in soln_l2]
-        unique_soln_l = list(set(rounded_soln_l))
-        custom_prnt("Unique solutions")
-        custom_prnt(unique_soln_l)
-        # END Extracting unique solutions
-    
-        # Get the norm of OO = TT - TA for each solution 
-        norm_l = []
-        for curr_soln in unique_soln_l:
-            IOD.f2 = curr_soln
+            IOD.populate_d_eye(curr_dist)
+            IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
+            op.f1_arr[dist_index] = IOD.f1
+            sym_f2 = Symbol('f_2')
+            IOD.f2 = sym_f2
             IOD.prototype_v4_populate_dependent_focalLengths()
             IOD.calc_ABCD_matrices()
             IOD.calc_TA()
+
+            II = Matrix([[1,0], [0,1]])
+            IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
+            S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+            TT = II
+            IOD.TT = II
+
             IOD.calc_TA_diff_TT()
-            IOD.calc_OO_norm()
-            norm_l.append(IOD.norm)
-        rounded_norm_l = [round(elem,2) for elem in norm_l]
-        # custom_prnt(type(rounded_norm_l))
-        custom_prnt("Norm of solutions")
-        custom_prnt(rounded_norm_l)
-        # END Get the norm of OO = TT - TA for each solution
+            OO = IOD.OO
 
-        # Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
-        if(output_arrays_resized == 'False'):
-            num_soln = len(unique_soln_l)
-            if(prev_num_soln < num_soln):
-                num_new_colns = num_soln - prev_num_soln
-                new_cols = np.zeros((num_dist, num_new_colns))
-                op.f2_arr = np.hstack((op.f2_arr, new_cols))
-                op.norm_arr = np.hstack((op.norm_arr, new_cols))
-                op.I1_arr = np.hstack((op.I1_arr, new_cols))
-                op.d_WI_f4_arr = np.hstack((op.d_WI_f4_arr, new_cols))
-                op.d_OM_f4_arr = np.hstack((op.d_OM_f4_arr, new_cols))
+            # custom_prnt_matrix(OO)
+            OO_l = OO.tolist()
+            flat_OO_l = []
+            conv_lol_flat_l(OO_l, flat_OO_l)
 
-                new_cols = np.zeros((num_dist, num_new_colns, num_dist))
-                op.mag_arr = np.hstack((op.mag_arr, new_cols))
-                op.img_dist = np.hstack((op.img_dist, new_cols))
-            output_arrays_resized = 'True'
-        # END Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
+            # Getting solutions for all equations together
+            soln_l = list(nonlinsolve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f2]))
+            # END Getting solutions for all equations together
 
-        for curr_soln in unique_soln_l:
-            # if(curr_soln < 4):
-            #     continue
-            
-            soln_index = unique_soln_l.index(curr_soln)
-            IOD.f2 = curr_soln
-            op.f2_arr[dist_index, soln_index] = IOD.f2
+            # Converting from sympy set,tuple to python list
+            soln_l2 = []
+            conv_lol_flat_l(soln_l, soln_l2)
+            # END Converting from sympy set to python list
 
-            custom_prnt("\n")
-            str = "f1 = %f cm" % (IOD.f1)
-            custom_prnt(str)
-            str = "f1 = %f D" % (convert_cm2dpt(IOD.f1))
-            custom_prnt(str)
-            str = "f2 = %f cm" % (IOD.f2)
-            custom_prnt(str)
-            str = "f2 = %f D" % (convert_cm2dpt(IOD.f2))
-            custom_prnt(str)
+            # Extracting unique solutions
+            rounded_soln_l = [round(elem,2) for elem in soln_l2]
+            unique_soln_l = list(set(rounded_soln_l))
+            custom_prnt("Unique solutions")
+            custom_prnt(unique_soln_l)
+            # END Extracting unique solutions
 
-            # Verify that TA ~= TT
-            IOD.prototype_v4_populate_dependent_focalLengths()
-            IOD.calc_ABCD_matrices()
-            IOD.calc_TA()
-            IOD.calc_TA_diff_TT()
-            IOD.calc_OO_norm()
+            # Get the norm of OO = TT - TA for each solution 
+            norm_l = []
+            for curr_soln in unique_soln_l:
+                IOD.f2 = curr_soln
+                IOD.prototype_v4_populate_dependent_focalLengths()
+                IOD.calc_ABCD_matrices()
+                IOD.calc_TA()
+                IOD.calc_TA_diff_TT()
+                IOD.calc_OO_norm()
+                norm_l.append(IOD.norm)
+            rounded_norm_l = [round(elem,2) for elem in norm_l]
+            # custom_prnt(type(rounded_norm_l))
+            custom_prnt("Norm of solutions")
+            custom_prnt(rounded_norm_l)
+            # END Get the norm of OO = TT - TA for each solution
 
-            TA_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
-            str = "Actual Transfer matrix:"
-            custom_prnt(str)
-            custom_prnt(TA_l)
+            # Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
+            if(output_arrays_resized == 'False'):
+                num_soln = len(unique_soln_l)
+                if(prev_num_soln < num_soln):
+                    num_new_colns = num_soln - prev_num_soln
+                    new_cols = np.zeros((num_dist, num_new_colns))
+                    op.f2_arr = np.hstack((op.f2_arr, new_cols))
+                    op.norm_arr = np.hstack((op.norm_arr, new_cols))
+                    op.I1_arr = np.hstack((op.I1_arr, new_cols))
+                    op.d_WI_f4_arr = np.hstack((op.d_WI_f4_arr, new_cols))
+                    op.d_OM_f4_arr = np.hstack((op.d_OM_f4_arr, new_cols))
 
-            TT_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
-            str = "Target Transfer matrix:"
-            custom_prnt(str)
-            custom_prnt(TT_l)
+                    new_cols = np.zeros((num_dist, num_new_colns, num_dist))
+                    op.mag_arr = np.hstack((op.mag_arr, new_cols))
+                    op.img_dist = np.hstack((op.img_dist, new_cols))
+                output_arrays_resized = 'True'
+            # END Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
 
-            OO_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
-            str = "residual matrix"
-            custom_prnt(str)
-            custom_prnt(OO_l)
-            rounded_norm = round(IOD.norm, 2)
-            op.norm_arr[dist_index, soln_index] = rounded_norm
-            str = "norm = %f" % (rounded_norm)
-            custom_prnt(str)
-            # END Verify that TT ~= TA
+            for curr_soln in unique_soln_l:
+                str = "curr_soln_index = %d ========================" % (unique_soln_l.index(curr_soln))
+                print(str)
 
-            # Calculate where image of real world is formed
-            # Calculate d_WI_f4
-            IOD.populate_d_eye(IOD.d_vip_eye)
-            IOD.propagate_rw_all(IOD.d_W_f1)
-            # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
-            op.I1_arr[dist_index, soln_index] = IOD.I1
-            op.d_f1_LCoS_arr[dist_index] = IOD.d_f1_LCoS
-            # END Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
-            str = "d_WI_f4 = %f" % (IOD.d_WI_f4)
-            custom_prnt(str)
-            op.d_WI_f4_arr[dist_index, soln_index] = IOD.d_WI_f4
-            # END Calculate where image of real world is formed
+                # if(curr_soln < 4):
+                #     continue
 
-            # Calculate where image of occlusion mask
-            if (abs(IOD.I1 - IOD.d_f1_LCoS) < 0.01):
-                custom_prnt("No need to propagate OM separately because rw at vip formed at LCoS")
-                IOD.d_OM_f4 = IOD.d_WI_f4
-            else:
-                custom_prnt("RW at vip did not form at LCoS")
-                IOD.propagate_om()
-            # END Calculate where image of occlusion mask
-            str = "d_OM_f4 = %f" %(IOD.d_OM_f4)
-            custom_prnt(str)
-            str = "d_W_f1 = %f" % (-IOD.d_W_f1)
-            custom_prnt(str)
+                soln_index = unique_soln_l.index(curr_soln)
+                IOD.f2 = curr_soln
+                op.f2_arr[dist_index, soln_index] = IOD.f2
 
-            op.d_OM_f4_arr[dist_index, soln_index] = IOD.d_OM_f4
-            op.d_W_f1_arr[dist_index] = -IOD.d_W_f1
+                custom_prnt("\n")
+                str = "f1 = %f cm" % (IOD.f1)
+                custom_prnt(str)
+                str = "f1 = %f D" % (convert_cm2dpt(IOD.f1))
+                custom_prnt(str)
+                str = "f2 = %f cm" % (IOD.f2)
+                custom_prnt(str)
+                str = "f2 = %f D" % (convert_cm2dpt(IOD.f2))
+                custom_prnt(str)
 
-            str = "Magnification at all distances:"
-            custom_prnt(str)
-            diff_l = []
-            for ncurr_dist in dists:
-                ncurr_dist_index = dists.index(ncurr_dist)
-                IOD.populate_d_eye(ncurr_dist)
+                # Verify that TA ~= TT
+                IOD.prototype_v4_populate_dependent_focalLengths()
+                IOD.calc_ABCD_matrices()
+                IOD.calc_TA()
+                IOD.calc_TA_diff_TT()
+                IOD.calc_OO_norm()
+
+                TA_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
+                str = "Actual Transfer matrix:"
+                custom_prnt(str)
+                custom_prnt(TA_l)
+
+                TT_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
+                str = "Target Transfer matrix:"
+                custom_prnt(str)
+                custom_prnt(TT_l)
+
+                OO_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
+                str = "residual matrix"
+                custom_prnt(str)
+                custom_prnt(OO_l)
+                rounded_norm = round(IOD.norm, 2)
+                op.norm_arr[dist_index, soln_index] = rounded_norm
+                str = "norm = %f" % (rounded_norm)
+                custom_prnt(str)
+                # END Verify that TT ~= TA
+
+                # Calculate where image of real world is formed
+                # Calculate d_WI_f4
+                IOD.populate_d_eye(IOD.d_vip_eye)
+                print(IOD.d_W_f1)
                 IOD.propagate_rw_all(IOD.d_W_f1)
-                if(abs(IOD.rw_magnification - 1) < 0.1):
-                    diff_dist = IOD.d_WI_f4 + ncurr_dist
+                # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
+                op.I1_arr[dist_index, soln_index] = IOD.I1
+                op.d_f1_LCoS_arr[dist_index] = IOD.d_f1_LCoS
+                # END Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
+                str = "d_WI_f4 = %f" % (IOD.d_WI_f4)
+                custom_prnt(str)
+                op.d_WI_f4_arr[dist_index, soln_index] = IOD.d_WI_f4
+                # END Calculate where image of real world is formed
+
+                # Calculate where image of occlusion mask
+                if (abs(IOD.I1 - IOD.d_f1_LCoS) < 0.01):
+                    custom_prnt("No need to propagate OM separately because rw at vip formed at LCoS")
+                    IOD.d_OM_f4 = IOD.d_WI_f4
+                else:
+                    custom_prnt("RW at vip did not form at LCoS")
+                    IOD.propagate_om()
+                # END Calculate where image of occlusion mask
+                str = "d_OM_f4 = %f" %(IOD.d_OM_f4)
+                custom_prnt(str)
+                str = "d_W_f1 = %f" % (-IOD.d_W_f1)
+                custom_prnt(str)
+
+                op.d_OM_f4_arr[dist_index, soln_index] = IOD.d_OM_f4
+                op.d_W_f1_arr[dist_index] = -IOD.d_W_f1
+
+                str = "Magnification at all distances:"
+                custom_prnt(str)
+                diff_l = []
+                mag_l = []
+                for ncurr_dist in dists:
+                    ncurr_dist_index = dists.index(ncurr_dist)
+
+                    # IOD.populate_d_eye(ncurr_dist)
+                    IOD.d_W_f1 = ncurr_dist
+
+                    IOD.propagate_rw_all(IOD.d_W_f1) # Assume that ncurr_dist = d_W_f1
+
+                    diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
                     diff_l.append(diff_dist)
-                custom_prnt(IOD.rw_magnification)
-                op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
-                diff_dist = IOD.d_WI_f4 + ncurr_dist
-                op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
+                    op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
 
-                # custom_prnt(IOD.rw_magnification)
-                # op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
-                # op.img_dist[dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
+                    mag_l.append(IOD.rw_magnification)
+                    op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
 
-            if(len(diff_l) != 0):
+
+
+                mag_l_rounded = [round(elem,2) for elem in mag_l]
+                # print(mag_l_rounded)
+                mag_arr = np.array(mag_l, dtype=np.float64)
+
+                diff_l_rounded = [round(elem,2) for elem in diff_l]
+                # print(diff_l_rounded)
                 diff_arr = np.array(diff_l, dtype=np.float64)
-                print(np.mean(diff_arr))
-                print(np.std(diff_arr))
+
+                str = 'Avg(mag): %0.2f  Std(mag): %0.2f  Avg(dif): %0.2f  Std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
+                print(str)
                 print('\n')
-                
-    # graph_outputs(op, dists, unique_soln_l, outputs_dir, ylabels, ylim_arr)
+
+    # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
+
 
 '''
 f3 = f4 = 5
@@ -946,45 +971,33 @@ def main10():
 
     str = "Magnification at all distances:"
     custom_prnt(str)
-    # dists = [200]
     diff_l = []
+    mag_l = []
     for ncurr_dist in dists:
         ncurr_dist_index = dists.index(ncurr_dist)
-        IOD.propagate_rw_all(ncurr_dist)
-        if(abs(IOD.rw_magnification - 1) < 0.1):
-            # print("f1")
-            # print(IOD.O1)
-            # print(IOD.I1)
-            # print("f2")
-            # print(IOD.O2)
-            # print(IOD.I2)
-            # print("f3")
-            # print(IOD.O3)
-            # print(IOD.I3)
-            # print("f4")
-            # print(IOD.O4)
-            # print(IOD.I4)
-            # print(ncurr_dist)
-            # print(-IOD.d_WI_f4)
-            diff_dist = IOD.d_WI_f4 + ncurr_dist
-            diff_l.append(diff_dist)
-            # print(diff_dist)
-            # print(IOD.rw_magnification)
-            # print("\n")
-            # print(IOD.d_WI_f1)
-            custom_prnt(IOD.rw_magnification)
-            custom_prnt(ncurr_dist)
-            custom_prnt(IOD.d_WI_f4)
-            custom_prnt(IOD.d_WI_f1)
-            custom_prnt("\n")
-        custom_prnt(IOD.rw_magnification)
-        op.mag_arr[ncurr_dist_index] = IOD.rw_magnification
-        diff_dist = IOD.d_WI_f4 + ncurr_dist
-        op.img_dist[ncurr_dist_index] = diff_dist
 
+        # IOD.populate_d_eye(ncurr_dist)
+        IOD.d_W_f1 = ncurr_dist
+
+        IOD.propagate_rw_all(IOD.d_W_f1) # Assume that ncurr_dist = d_W_f1
+
+        diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
+        diff_l.append(diff_dist)
+
+        mag_l.append(IOD.rw_magnification)
+
+
+    mag_l_rounded = [round(elem,2) for elem in mag_l]
+    # print(mag_l_rounded)
+    mag_arr = np.array(mag_l, dtype=np.float64)
+
+    diff_l_rounded = [round(elem,2) for elem in diff_l]
+    # print(diff_l_rounded)
     diff_arr = np.array(diff_l, dtype=np.float64)
-    print(np.mean(diff_arr))
-    print(np.std(diff_arr))
+
+    str = 'Avg(mag): %0.2f  Std(mag): %0.2f  Avg(dif): %0.2f  Std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
+    print(str)
+    print('\n')
  
     # soln_l = []
     # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)

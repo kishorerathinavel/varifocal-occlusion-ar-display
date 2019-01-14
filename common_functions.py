@@ -1,4 +1,5 @@
 from sympy import *
+import numpy as np
 
 def convert_dpt2cm(value_dpt):
     return convert_m2cm(1/value_dpt)
@@ -7,7 +8,12 @@ def convert_m2cm(value_m):
     return 100*value_m
 
 def calculate_image_distance(d_O, f):
-    return (d_O*f)/(d_O - f)
+    d_I = 0
+    if(d_O == f):
+        d_I = np.sign(d_O)*np.sign(f)*np.inf
+    else:
+        d_I = (d_O*f)/(d_O - f)
+    return d_I
 
 def calculate_focal_length(d_O, d_I):
     return (d_O * d_I)/(d_I + d_O)
