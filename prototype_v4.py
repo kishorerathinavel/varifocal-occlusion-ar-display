@@ -1065,8 +1065,6 @@ def main_all():
             dist_index = dists_l.index(curr_dist)
             IOD.d_vip_eye = curr_dist # Should be > 23
             IOD.d_vip_eye = curr_dist
-        
-
     
 if __name__ == '__main__':
     main5()
