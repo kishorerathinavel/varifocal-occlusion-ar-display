@@ -101,14 +101,14 @@ def calc_perceptually_useful_distances(max_dist, diop_diff, num_dist):
     # Assuming that min_dist is specified in cm
     max_diop_dist = convert_cm2dpt(max_dist)
     prev_diop_dist = max_diop_dist
-    dists = []
-    dists.append(max_dist)
+    dists_l = []
+    dists_l.append(max_dist)
     for iter in range(1,num_dist):
         next_diop_dist = prev_diop_dist + diop_diff
         next_dist = convert_dpt2cm(next_diop_dist)
-        dists.append(next_dist)
+        dists_l.append(next_dist)
         prev_diop_dist = next_diop_dist
-    return dists
+    return dists_l
 
 def conv_lol_flat_l(my_input, output_list):
     if isinstance(my_input, list):
@@ -124,9 +124,9 @@ def custom_prnt(str):
     if(prnt_flag == 'True'):
         print(str)
 
-def graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr):
+def graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l):
     num_soln = len(soln_l)
-    num_dists = len(dists)
+    num_dists_l = len(dists_l)
     iter_ylabel = 0
 
     # for key, value in op.__dict__.items():
@@ -144,10 +144,10 @@ def graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr):
         if(dimensions == 1):
             str = "./%s/D%d_%s.png" % (outputs_dir, dimensions, key)
             plt.clf()
-            plt.plot(dists, value)
-            plt.ylabel(ylabels[iter_ylabel])
+            plt.plot(dists_l, value)
+            plt.ylabel(ylabels_l[iter_ylabel])
             plt.xlabel("distance")
-            curr_ylim = ylim_arr[iter_ylabel]
+            curr_ylim = ylim_l[iter_ylabel]
             if(curr_ylim[0] != curr_ylim[1]):
                 plt.ylim(curr_ylim[0], curr_ylim[1])
             plt.savefig(str)
@@ -155,22 +155,22 @@ def graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr):
             for iter_soln in range(0, num_soln):
                 str = "./%s/D%d_%d_%s.png" % (outputs_dir, dimensions, iter_soln, key)
                 plt.clf()
-                plt.plot(dists, value[:,iter_soln])
-                plt.ylabel(ylabels[iter_ylabel])
+                plt.plot(dists_l, value[:,iter_soln])
+                plt.ylabel(ylabels_l[iter_ylabel])
                 plt.xlabel("distance")
-                curr_ylim = ylim_arr[iter_ylabel]
+                curr_ylim = ylim_l[iter_ylabel]
                 if(curr_ylim[0] != curr_ylim[1]):
                     plt.ylim(curr_ylim[0], curr_ylim[1])
                 plt.savefig(str)
         elif(dimensions == 3):
-            for iter_dist in range(0, num_dists):
+            for iter_dist in range(0, num_dists_l):
                 for iter_soln in range(0, num_soln):
                     str = "./%s/D%d_%d_%d_%s.png" % (outputs_dir, dimensions, iter_dist, iter_soln, key)
                     plt.clf()
-                    plt.plot(dists, value[iter_dist,iter_soln, :])
-                    plt.ylabel(ylabels[iter_ylabel])
+                    plt.plot(dists_l, value[iter_dist,iter_soln, :])
+                    plt.ylabel(ylabels_l[iter_ylabel])
                     plt.xlabel("distance")
-                    curr_ylim = ylim_arr[iter_ylabel]
+                    curr_ylim = ylim_l[iter_ylabel]
                     if(curr_ylim[0] != curr_ylim[1]):
                         plt.ylim(curr_ylim[0], curr_ylim[1])
                     plt.savefig(str)
@@ -188,7 +188,7 @@ def main6():
     diop_diff = 0.5
     min_dist = 25
     num_dist = 8
-    dists = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
+    dists_l = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
 
     # Assume that num_solns = 2
     # All output matrices have num_dist rows and num_soln columns
@@ -206,8 +206,8 @@ def main6():
     op.d_W_f1_arr = np.copy(std_output_arr)
     op.mag_arr = np.copy(std_output_arr)
 
-    for curr_dist in dists:
-        dist_index = dists.index(curr_dist)
+    for curr_dist in dists_l:
+        dist_index = dists_l.index(curr_dist)
         IOD.d_vip_eye = curr_dist # Should be > 23
         str = "d_vip_eye = %f" % curr_dist
         custom_prnt(str)
@@ -258,7 +258,7 @@ def main5():
     diop_diff = 0.6
     max_dist = convert_m2cm(10)
     num_dist = 5
-    dists = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
     std_output_arr = np.zeros(num_dist)
     op.f1_arr = np.copy(std_output_arr)
@@ -281,22 +281,23 @@ def main5():
     op.mag_arr = np.copy(std_output_arr)
     op.img_dist = np.copy(std_output_arr)
 
-    ylabels = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "f3", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
-    ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1]]
+    ylabels_l = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "f3", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
+    ylim_l = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1]]
     output_arrays_resized = 'False'
 
     for IOD.d_f2_f3 in range(3, 18, 2):
         str = "d_f2_f3 = %0.2f ========================" % (IOD.d_f2_f3)
         print(str)
-        for curr_dist in dists:
+        for curr_dist in dists_l:
             str = "d_vip_eye = %0.2f ========================" % (curr_dist)
             print(str)
-            dist_index = dists.index(curr_dist)
+            dist_index = dists_l.index(curr_dist)
             IOD.d_vip_eye = curr_dist # Should be > 23
             str = "d_vip_eye = %f" % curr_dist
             custom_prnt(str)
 
             IOD.populate_d_eye(curr_dist)
+            # IOD.d_W_f1 = IOD.d_vip_eye
             IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
             op.f1_arr[dist_index] = IOD.f1
             sym_f2 = Symbol('f_2')
@@ -310,7 +311,8 @@ def main5():
             II = Matrix([[1,0], [0,1]])
             IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
             S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-            TT = II
+            # TT = II
+            TT = S14
             IOD.TT = II
 
             IOD.calc_TA_diff_TT()
@@ -435,12 +437,12 @@ def main5():
                     IOD.d_OM_f4 = IOD.d_WI_f4
                 else:
                     custom_prnt("RW at vip did not form at LCoS")
-                    str = "d_vip_eye = %f; d_W_f1 = %f" % (IOD.d_vip_eye, IOD.d_W_f1)
-                    custom_prnt(str)
-                    str = "saveI1 = %f; saveO1 = %f; savef1 = %f" % (saveI1, saveO1, savef1)
-                    custom_prnt(str)
-                    str = "I1 = %f; O1 = %f; f1 = %f" % (IOD.I1, IOD.O1, IOD.f1)
-                    custom_prnt(str)
+                    # str = "d_vip_eye = %f; d_W_f1 = %f" % (IOD.d_vip_eye, IOD.d_W_f1)
+                    # custom_prnt(str)
+                    # str = "saveI1 = %f; saveO1 = %f; savef1 = %f" % (saveI1, saveO1, savef1)
+                    # custom_prnt(str)
+                    # str = "I1 = %f; O1 = %f; f1 = %f" % (IOD.I1, IOD.O1, IOD.f1)
+                    # custom_prnt(str)
                     IOD.propagate_om()
                 # END Calculate where image of occlusion mask
                 str = "d_OM_f4 = %f" %(IOD.d_OM_f4)
@@ -455,8 +457,8 @@ def main5():
                 custom_prnt(str)
                 diff_l = []
                 mag_l = []
-                for ncurr_dist in dists:
-                    ncurr_dist_index = dists.index(ncurr_dist)
+                for ncurr_dist in dists_l:
+                    ncurr_dist_index = dists_l.index(ncurr_dist)
 
                     # IOD.populate_d_eye(ncurr_dist)
                     IOD.d_W_f1 = ncurr_dist
@@ -486,7 +488,7 @@ def main5():
 
                 # Collect the average difference of the better solution
 
-    # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
+    # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
 '''
 f1 = f4
@@ -499,7 +501,7 @@ def main4():
     diop_diff = 0.6
     max_dist = convert_m2cm(10)
     num_dist = 5
-    dists = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
     std_output_arr = np.zeros(num_dist)
     op.f1_arr = np.copy(std_output_arr)
@@ -521,21 +523,22 @@ def main4():
     op.mag_arr = np.copy(std_output_arr)
     op.img_dist = np.copy(std_output_arr)
 
-    ylabels = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
-    ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [0,-200]]
+    ylabels_l = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
+    ylim_l = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [0,-200]]
     output_arrays_resized = 'False'
 
     for IOD.d_f2_f3 in range(15, 18):
         str = "d_f2_f3 = %0.2f ========================" % (IOD.d_f2_f3)
         print(str)
-        for curr_dist in dists:
+        for curr_dist in dists_l:
             str = "d_vip_eye = %0.2f ========================" % (curr_dist)
             print(str)
-            dist_index = dists.index(curr_dist)
+            dist_index = dists_l.index(curr_dist)
             IOD.d_vip_eye = curr_dist # Should be > 23
             str = "d_vip_eye = %f" % curr_dist
             custom_prnt(str)
 
+            # IOD.d_W_f1 = IOD.d_vip_eye
             IOD.populate_d_eye(curr_dist)
             IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
             op.f1_arr[dist_index] = IOD.f1
@@ -548,7 +551,8 @@ def main4():
             II = Matrix([[1,0], [0,1]])
             IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
             S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-            TT = II
+            # TT = II
+            TT = S14
             IOD.TT = II
 
             IOD.calc_TA_diff_TT()
@@ -691,8 +695,8 @@ def main4():
                 custom_prnt(str)
                 diff_l = []
                 mag_l = []
-                for ncurr_dist in dists:
-                    ncurr_dist_index = dists.index(ncurr_dist)
+                for ncurr_dist in dists_l:
+                    ncurr_dist_index = dists_l.index(ncurr_dist)
 
                     # IOD.populate_d_eye(ncurr_dist)
                     IOD.d_W_f1 = ncurr_dist
@@ -720,7 +724,7 @@ def main4():
                 print(str)
                 print('\n')
 
-    # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
+    # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
 
 '''
@@ -733,7 +737,7 @@ def main9():
     diop_diff = 0.5
     min_dist = 25
     num_dist = 8
-    dists = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
+    dists_l = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
 
     std_output_arr = np.zeros(num_dist)
     op.f1_arr = np.copy(std_output_arr)
@@ -755,12 +759,12 @@ def main9():
     op.mag_arr = np.copy(std_output_arr)
     op.img_dist = np.copy(std_output_arr)
 
-    ylabels = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
-    ylim_arr = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [0,-200]]
+    ylabels_l = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
+    ylim_l = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [0,-200]]
     output_arrays_resized = 'False'
 
-    for curr_dist in dists:
-        dist_index = dists.index(curr_dist)
+    for curr_dist in dists_l:
+        dist_index = dists_l.index(curr_dist)
         IOD.d_vip_eye = curr_dist # Should be > 23
         str = "d_vip_eye = %f" % curr_dist
         custom_prnt(str)
@@ -913,15 +917,15 @@ def main9():
 
             str = "Magnification at all distances:"
             custom_prnt(str)
-            for ncurr_dist in dists:
-                ncurr_dist_index = dists.index(ncurr_dist)
+            for ncurr_dist in dists_l:
+                ncurr_dist_index = dists_l.index(ncurr_dist)
                 IOD.populate_d_eye(ncurr_dist)
                 IOD.propagate_rw_all(IOD.d_W_f1)
                 custom_prnt(IOD.rw_magnification)
                 op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
                 op.img_dist[dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
         
-    graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
+    graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
 '''
 Modelling the optical system from
@@ -933,7 +937,7 @@ def main10():
     diop_diff = 0.3
     max_dist = convert_m2cm(10)
     num_dist = 15
-    dists = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
     # Assume that num_solns = 2
     # All output matrices have num_dist rows and num_soln columns
@@ -941,8 +945,8 @@ def main10():
     op.mag_arr = np.copy(std_output_arr)
     op.img_dist = np.copy(std_output_arr)
 
-    ylabels = ["mag_arr", "img_dist"]
-    ylim_arr = [[-1.5, 1.5], [-1, -1]]
+    ylabels_l = ["mag_arr", "img_dist"]
+    ylim_l = [[-1.5, 1.5], [-1, -1]]
 
     IOD.f1 = 4
     IOD.f2 = 4
@@ -973,8 +977,8 @@ def main10():
     custom_prnt(str)
     diff_l = []
     mag_l = []
-    for ncurr_dist in dists:
-        ncurr_dist_index = dists.index(ncurr_dist)
+    for ncurr_dist in dists_l:
+        ncurr_dist_index = dists_l.index(ncurr_dist)
 
         # IOD.populate_d_eye(ncurr_dist)
         IOD.d_W_f1 = ncurr_dist
@@ -1000,8 +1004,70 @@ def main10():
     print('\n')
  
     # soln_l = []
-    # graph_outputs(op, dists, soln_l, outputs_dir, ylabels, ylim_arr)
+    # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
+# An attempt to automate main4, main5, etc. by specifying just the unknowns
+def main_all():
+    print('DO NOT USE THIS MAIN. IT''S WORK IN PROGRESS')
+    IOD = OD()
+    op = outputs()
+    diop_diff = 0.6
+    max_dist = convert_m2cm(10)
+    num_dist = 5
+    dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+
+    focal_lengths = ['f2', 'f3', 5]
+    # print(type(focal_lengths[0]))
+    # print(type(focal_lengths[1]))
+    # print(type(focal_lengths[2]))
+    # for focal_length in focal_lengths:
+    #     if(isinstance(focal_length, int)):
+    #         print('int confirmed')
+    #     elif(isinstance(focal_length, str)):
+    #         print('str confirmed')
+
+
+    d_f2_f3_l = list(range(3, 18, 2))
+    num_d_f2_f3 = len(d_f2_f3_l)
+
+    # Assume that num_solns = 2
+    # All output matrices have num_dist rows and num_soln columns
+    num_soln = 2
+    prev_num_soln = 2
+    
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist))
+    op.f1_arr = np.copy(std_output_arr)
+    op.d_W_f1_arr = np.copy(std_output_arr)
+
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist, num_soln, num_dist))
+    op.mag_arr = np.copy(std_output_arr)
+    op.rw_dist = np.copy(std_output_arr)
+    op.img_dist = np.copy(std_output_arr)
+    op.diff_dist = np.copy(std_output_arr)
+
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist, num_soln))
+    op.norm_arr = np.copy(std_output_arr)
+    op.d_OM_f4_arr = np.copy(std_output_arr)
+
+    ylabels_l = ["f1", "d_W_f1", "mag_arr", "rw_dist", "img_dist", "diff_dist", "norm", "d_OM_f4"]
+    ylim_l = [[-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1]]
+
+    for focal_length in focal_lengths:
+        if(isinstance(focal_length, str)):
+            setattr(op, focal_length, np.copy(std_output_arr))
+            ylabels_l.append(focal_length)
+            ylim_l.append([-1,-1])
+
+    output_arrays_resized = 'False'
+
+    for IOD.d_f2_f3 in d_f2_f3_l:
+        for curr_dist in dists_l:
+            dist_index = dists_l.index(curr_dist)
+            IOD.d_vip_eye = curr_dist # Should be > 23
+            IOD.d_vip_eye = curr_dist
+        
+
+    
 if __name__ == '__main__':
     main5()
 
