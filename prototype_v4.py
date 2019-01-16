@@ -124,7 +124,8 @@ def custom_prnt(str):
     if(prnt_flag == 'True'):
         print(str)
 
-def graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l):
+def graph_outputs(op, d_f2_f3_l, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l):
+    num_d_f2_f3 = len(d_f2_f3_l)
     num_soln = len(soln_l)
     num_dists_l = len(dists_l)
     iter_ylabel = 0
@@ -152,10 +153,10 @@ def graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l):
                 plt.ylim(curr_ylim[0], curr_ylim[1])
             plt.savefig(str)
         elif(dimensions == 2):
-            for iter_soln in range(0, num_soln):
-                str = "./%s/D%d_%d_%s.png" % (outputs_dir, dimensions, iter_soln, key)
+            for iter_d_f2_f3 in range(0, num_d_f2_f3):
+                str = "./%s/D%d_%d_%s.png" % (outputs_dir, dimensions, iter_d_f2_f3, key)
                 plt.clf()
-                plt.plot(dists_l, value[:,iter_soln])
+                plt.plot(dists_l, value[iter_d_f2_f3,:])
                 plt.ylabel(ylabels_l[iter_ylabel])
                 plt.xlabel("distance")
                 curr_ylim = ylim_l[iter_ylabel]
@@ -163,17 +164,30 @@ def graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l):
                     plt.ylim(curr_ylim[0], curr_ylim[1])
                 plt.savefig(str)
         elif(dimensions == 3):
-            for iter_dist in range(0, num_dists_l):
+            for iter_d_f2_f3 in range(0, num_d_f2_f3):
                 for iter_soln in range(0, num_soln):
-                    str = "./%s/D%d_%d_%d_%s.png" % (outputs_dir, dimensions, iter_dist, iter_soln, key)
+                    str = "./%s/D%d_%d_%d_%s.png" % (outputs_dir, dimensions, iter_d_f2_f3, iter_soln, key)
                     plt.clf()
-                    plt.plot(dists_l, value[iter_dist,iter_soln, :])
+                    plt.plot(dists_l, value[iter_d_f2_f3, :, iter_soln])
                     plt.ylabel(ylabels_l[iter_ylabel])
                     plt.xlabel("distance")
                     curr_ylim = ylim_l[iter_ylabel]
                     if(curr_ylim[0] != curr_ylim[1]):
                         plt.ylim(curr_ylim[0], curr_ylim[1])
                     plt.savefig(str)
+        elif(dimensions == 4):
+            for iter_d_f2_f3 in range(0, num_d_f2_f3):
+                for iter_dist in range(0, num_dists_l):
+                    for iter_soln in range(0, num_soln):
+                        str = "./%s/D%d_%d_%d_%d_%s.png" % (outputs_dir, dimensions, iter_d_f2_f3, iter_dist, iter_soln, key)
+                        plt.clf()
+                        plt.plot(dists_l, value[iter_d_f2_f3, iter_dist, iter_soln, :])
+                        plt.ylabel(ylabels_l[iter_ylabel])
+                        plt.xlabel("distance")
+                        curr_ylim = ylim_l[iter_ylabel]
+                        if(curr_ylim[0] != curr_ylim[1]):
+                            plt.ylim(curr_ylim[0], curr_ylim[1])
+                        plt.savefig(str)
         iter_ylabel = iter_ylabel + 1
         
 
@@ -257,49 +271,53 @@ def main5():
     op = outputs()
     diop_diff = 0.6
     max_dist = convert_m2cm(10)
-    num_dist = 5
+    num_dist = 3
     dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
-    std_output_arr = np.zeros(num_dist)
-    op.f1_arr = np.copy(std_output_arr)
-    op.d_W_f1_arr = np.copy(std_output_arr)
-    op.d_f1_LCoS_arr =  np.copy(std_output_arr)
+    d_f2_f3_l = list(range(3, 18, 5))
+    num_d_f2_f3 = len(d_f2_f3_l)
 
     # Assume that num_solns = 2
     # All output matrices have num_dist rows and num_soln columns
     num_soln = 2
-    prev_num_soln = 2
-    std_output_arr = np.zeros((num_dist, num_soln))
+    prev_num_soln = num_soln
+
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist))
+    op.f1_arr = np.copy(std_output_arr)
+    op.d_W_f1_arr = np.copy(std_output_arr)
+
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist, num_soln))
     op.f2_arr = np.copy(std_output_arr)
     op.f3_arr = np.copy(std_output_arr)
     op.norm_arr = np.copy(std_output_arr)
-    op.I1_arr = np.copy(std_output_arr)
-    op.d_WI_f4_arr = np.copy(std_output_arr)
     op.d_OM_f4_arr = np.copy(std_output_arr)
 
-    std_output_arr = np.zeros((num_dist, num_soln, num_dist))
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist, num_soln, num_dist))
     op.mag_arr = np.copy(std_output_arr)
+    op.rw_dist = np.copy(std_output_arr)
     op.img_dist = np.copy(std_output_arr)
+    op.diff_dist = np.copy(std_output_arr)
 
-    ylabels_l = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "f3", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
-    ylim_l = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1]]
+    ylabels_l = ["f1", "d_W_f1", "f2", "f3", "norm", "d_OM_f4", "mag_arr", "rw_dist", "img_dist", "diff_dist"]
+    ylim_l = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1], [-1, -1], [-1, -1]]
     output_arrays_resized = 'False'
 
-    for IOD.d_f2_f3 in range(3, 18, 2):
-        str = "d_f2_f3 = %0.2f ========================" % (IOD.d_f2_f3)
-        print(str)
+    for IOD.d_f2_f3 in d_f2_f3_l:
+        d_f2_f3_index = d_f2_f3_l.index(IOD.d_f2_f3)
+        # str = "d_f2_f3 = %0.2f ========================" % (IOD.d_f2_f3)
+        # print(str)
         for curr_dist in dists_l:
-            str = "d_vip_eye = %0.2f ========================" % (curr_dist)
-            print(str)
+            # str = "d_vip_eye = %0.2f ========================" % (curr_dist)
+            # print(str)
             dist_index = dists_l.index(curr_dist)
             IOD.d_vip_eye = curr_dist # Should be > 23
             str = "d_vip_eye = %f" % curr_dist
             custom_prnt(str)
 
-            IOD.populate_d_eye(curr_dist)
-            # IOD.d_W_f1 = IOD.d_vip_eye
+            # IOD.populate_d_eye(curr_dist)
+            IOD.d_W_f1 = IOD.d_vip_eye
             IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
-            op.f1_arr[dist_index] = IOD.f1
+            op.f1_arr[d_f2_f3_index,dist_index] = IOD.f1
             sym_f2 = Symbol('f_2')
             IOD.f2 = sym_f2
             sym_f3 = Symbol('f_3')
@@ -349,28 +367,28 @@ def main5():
                 num_soln = len(soln_l)
                 if(prev_num_soln < num_soln):
                     num_new_colns = num_soln - prev_num_soln
-                    new_cols = np.zeros((num_dist, num_new_colns))
-                    op.f2_arr = np.hstack((op.f2_arr, new_cols))
-                    op.f3_arr = np.hstack((op.f2_arr, new_cols))
-                    op.norm_arr = np.hstack((op.norm_arr, new_cols))
-                    op.I1_arr = np.hstack((op.I1_arr, new_cols))
-                    op.d_WI_f4_arr = np.hstack((op.d_WI_f4_arr, new_cols))
-                    op.d_OM_f4_arr = np.hstack((op.d_OM_f4_arr, new_cols))
+                    new_cols = np.zeros((num_d_f2_f3, num_dist, num_new_colns))
+                    op.f2_arr = np.dstack((op.f2_arr, new_cols))
+                    op.f3_arr = np.dstack((op.f2_arr, new_cols))
+                    op.norm_arr = np.dstack((op.norm_arr, new_cols))
+                    op.d_OM_f4_arr = np.dstack((op.d_OM_f4_arr, new_cols))
 
-                    new_cols = np.zeros((num_dist, num_new_colns, num_dist))
-                    op.mag_arr = np.hstack((op.mag_arr, new_cols))
-                    op.img_dist = np.hstack((op.img_dist, new_cols))
+                    new_cols = np.zeros((num_d_f2_f3, num_dist, num_new_colns, num_dist))
+                    op.mag_arr = np.dstack((op.mag_arr, new_cols))
+                    op.rw_dist = np.dstack((op.rw_dist, new_cols))
+                    op.img_dist = np.dstack((op.img_dist, new_cols))
+                    op.diff_dist = np.dstack((op.diff_dist, new_cols))
                 output_arrays_resized = 'True'
             # END Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
 
             for curr_soln in soln_l:
-                str = "curr_soln_index = %d ========================" % (soln_l.index(curr_soln))
-                print(str)
+                # str = "curr_soln_index = %d ========================" % (soln_l.index(curr_soln))
+                # print(str)
                 soln_index = soln_l.index(curr_soln)
                 IOD.f2 = curr_soln[0]
                 IOD.f3 = curr_soln[1]
-                op.f2_arr[dist_index, soln_index] = IOD.f2
-                op.f3_arr[dist_index, soln_index] = IOD.f3
+                op.f2_arr[d_f2_f3_index,dist_index, soln_index] = IOD.f2
+                op.f3_arr[d_f2_f3_index,dist_index, soln_index] = IOD.f3
 
                 custom_prnt("\n")
                 str = "f1 = %f cm" % (IOD.f1)
@@ -407,18 +425,17 @@ def main5():
                 custom_prnt(str)
                 custom_prnt(OO_l)
                 rounded_norm = round(IOD.norm, 2)
-                op.norm_arr[dist_index, soln_index] = rounded_norm
+                op.norm_arr[d_f2_f3_index,dist_index, soln_index] = rounded_norm
                 str = "norm = %f" % (rounded_norm)
                 custom_prnt(str)
                 # END Verify that TT ~= TA
 
                 # Calculate where image of real world is formed
                 # Calculate d_WI_f4
-                IOD.populate_d_eye(IOD.d_vip_eye)
+                # IOD.populate_d_eye(IOD.d_vip_eye)
+                IOD.d_W_f1 = IOD.d_vip_eye
                 IOD.propagate_rw_all(IOD.d_W_f1)
                 # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
-                op.I1_arr[dist_index, soln_index] = IOD.I1
-                op.d_f1_LCoS_arr[dist_index] = IOD.d_f1_LCoS
                 str = "I1 = %f" % (IOD.I1)
                 custom_prnt(str)
                 str = "d_f1_LCoS = %f" % (IOD.d_f1_LCoS)
@@ -426,10 +443,7 @@ def main5():
                 # END Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
                 str = "d_WI_f4 = %f" % (IOD.d_WI_f4)
                 custom_prnt(str)
-                op.d_WI_f4_arr[dist_index, soln_index] = IOD.d_WI_f4
                 # END Calculate where image of real world is formed
-
-                op.mag_arr[dist_index, soln_index] = IOD.rw_magnification
 
                 # Calculate where image of occlusion mask
                 if (abs(IOD.I1 - IOD.d_f1_LCoS) < 0.01):
@@ -450,13 +464,10 @@ def main5():
                 str = "d_W_f1 = %f" % (-IOD.d_W_f1)
                 custom_prnt(str)
 
-                op.d_OM_f4_arr[dist_index, soln_index] = IOD.d_OM_f4
-                op.d_W_f1_arr[dist_index] = -IOD.d_W_f1
+                op.d_OM_f4_arr[d_f2_f3_index,dist_index, soln_index] = IOD.d_OM_f4
 
                 str = "Magnification at all distances:"
                 custom_prnt(str)
-                diff_l = []
-                mag_l = []
                 for ncurr_dist in dists_l:
                     ncurr_dist_index = dists_l.index(ncurr_dist)
 
@@ -466,29 +477,51 @@ def main5():
                     IOD.propagate_rw_all(IOD.d_W_f1) # Assume that ncurr_dist = d_W_f1
 
                     diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
-                    diff_l.append(diff_dist)
-                    op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
+                    op.rw_dist[d_f2_f3_index, dist_index, soln_index, ncurr_dist_index] = IOD.d_W_f1
+                    op.img_dist[d_f2_f3_index, dist_index, soln_index, ncurr_dist_index] = -IOD.d_WI_f4
+                    op.diff_dist[d_f2_f3_index, dist_index, soln_index, ncurr_dist_index] = diff_dist
 
-                    mag_l.append(IOD.rw_magnification)
-                    op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
+                    op.mag_arr[d_f2_f3_index, dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
 
+    # Print relevant info from op
+    for d_f2_f3 in d_f2_f3_l:
+        iter1 = d_f2_f3_l.index(d_f2_f3)
+        str = "d_f2_f3 = %0.2f" % (d_f2_f3)
+        print(str)
+        for dist in dists_l:
+            iter2 = dists_l.index(dist)
+            str = "    dist = %0.2f" % (dist)
+            print(str)
+            mag_mean_l = []
+            mag_std_l = []
+            diff_mean_l = []
+            diff_std_l = []
+            for iter3 in range(0, num_soln):
+                # str = "soln_number = %0.2f ========================" % (iter3)
+                # print(str)
+                mag_l = op.mag_arr[iter1, iter2, iter3, :]
+                diff_l = op.diff_dist[iter1, iter2, iter3, :]
 
+                mag_mean_l.append(np.mean(mag_l))
+                mag_std_l.append(np.std(mag_l))
+                diff_mean_l.append(np.mean(diff_l))
+                diff_std_l.append(np.std(diff_l))
+                # str = 'Avg(mag): %0.2f  Std(mag): %0.2f  Avg(dif): %0.2f  Std(dif): %0.2f' % (np.mean(mag_l), np.std(mag_l), np.mean(diff_l), np.std(diff_l))
+                # print(str)
 
-                mag_l_rounded = [round(elem,2) for elem in mag_l]
-                # print(mag_l_rounded)
-                mag_arr = np.array(mag_l, dtype=np.float64)
+            mag_one = np.array([1]*len(mag_mean_l))
+            mag_diff_from_1 = np.array(mag_mean_l) - mag_one
+            # print(mag_diff_from_1)
+            mag_diff_from_1 = np.multiply(mag_diff_from_1, mag_diff_from_1)
+            # print(mag_diff_from_1)
+            min_index = np.argmin(mag_diff_from_1)
 
-                diff_l_rounded = [round(elem,2) for elem in diff_l]
-                # print(diff_l_rounded)
-                diff_arr = np.array(diff_l, dtype=np.float64)
+            str = '        AVG(mag): %0.2f  STD(mag): %0.2f  AVG(dif): %0.2f  STD(dif): %0.2f' % (mag_mean_l[min_index], mag_std_l[min_index], diff_mean_l[min_index], diff_std_l[min_index])
+            print(str)
+        print('\n')
 
-                str = 'Avg(mag): %0.2f  Std(mag): %0.2f  Avg(dif): %0.2f  Std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
-                print(str)
-                print('\n')
-
-                # Collect the average difference of the better solution
-
-    # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+    # Collect the average difference of the better solution
+    graph_outputs(op, d_f2_f3_l, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
 '''
 f1 = f4
@@ -500,48 +533,52 @@ def main4():
     op = outputs()
     diop_diff = 0.6
     max_dist = convert_m2cm(10)
-    num_dist = 5
+    num_dist = 4
     dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
-    std_output_arr = np.zeros(num_dist)
-    op.f1_arr = np.copy(std_output_arr)
-    op.d_W_f1_arr = np.copy(std_output_arr)
-    op.d_f1_LCoS_arr =  np.copy(std_output_arr)
+    d_f2_f3_l = list(range(3, 18, 5))
+    num_d_f2_f3 = len(d_f2_f3_l)
 
     # Assume that num_solns = 2
     # All output matrices have num_dist rows and num_soln columns
     num_soln = 2
-    prev_num_soln = 2
-    std_output_arr = np.zeros((num_dist, num_soln))
+    prev_num_soln = num_soln
+
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist))
+    op.f1_arr = np.copy(std_output_arr)
+    op.d_W_f1_arr = np.copy(std_output_arr)
+
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist, num_soln))
     op.f2_arr = np.copy(std_output_arr)
     op.norm_arr = np.copy(std_output_arr)
-    op.I1_arr = np.copy(std_output_arr)
-    op.d_WI_f4_arr = np.copy(std_output_arr)
     op.d_OM_f4_arr = np.copy(std_output_arr)
 
-    std_output_arr = np.zeros((num_dist, num_soln, num_dist))
+    std_output_arr = np.zeros((num_d_f2_f3, num_dist, num_soln, num_dist))
     op.mag_arr = np.copy(std_output_arr)
+    op.rw_dist = np.copy(std_output_arr)
     op.img_dist = np.copy(std_output_arr)
+    op.diff_dist = np.copy(std_output_arr)
 
-    ylabels_l = ["f1", "d_W_f1", "d_f1_LCoS", "f2", "norm", "I1", "d_WI_f4", "d_OM_f4", "mag_arr", "img_dist"]
-    ylim_l = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [0,-200]]
+    ylabels_l = ["f1", "d_W_f1", "f2", "norm", "d_OM_f4", "mag_arr", "rw_dist", "img_dist", "diff_dist"]
+    ylim_l = [[-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1.5, 1.5], [-1,-1], [-1, -1], [-1, -1]]
     output_arrays_resized = 'False'
 
-    for IOD.d_f2_f3 in range(15, 18):
-        str = "d_f2_f3 = %0.2f ========================" % (IOD.d_f2_f3)
-        print(str)
+    for IOD.d_f2_f3 in d_f2_f3_l:
+        d_f2_f3_index = d_f2_f3_l.index(IOD.d_f2_f3)
+        # str = "d_f2_f3 = %0.2f ========================" % (IOD.d_f2_f3)
+        # print(str)
         for curr_dist in dists_l:
-            str = "d_vip_eye = %0.2f ========================" % (curr_dist)
-            print(str)
+            # str = "d_vip_eye = %0.2f ========================" % (curr_dist)
+            # print(str)
             dist_index = dists_l.index(curr_dist)
             IOD.d_vip_eye = curr_dist # Should be > 23
             str = "d_vip_eye = %f" % curr_dist
             custom_prnt(str)
 
-            # IOD.d_W_f1 = IOD.d_vip_eye
-            IOD.populate_d_eye(curr_dist)
+            # IOD.populate_d_eye(curr_dist)
+            IOD.d_W_f1 = IOD.d_vip_eye
             IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
-            op.f1_arr[dist_index] = IOD.f1
+            op.f1_arr[d_f2_f3_index,dist_index] = IOD.f1
             sym_f2 = Symbol('f_2')
             IOD.f2 = sym_f2
             IOD.prototype_v4_populate_dependent_focalLengths()
@@ -600,29 +637,28 @@ def main4():
                 num_soln = len(unique_soln_l)
                 if(prev_num_soln < num_soln):
                     num_new_colns = num_soln - prev_num_soln
-                    new_cols = np.zeros((num_dist, num_new_colns))
-                    op.f2_arr = np.hstack((op.f2_arr, new_cols))
-                    op.norm_arr = np.hstack((op.norm_arr, new_cols))
-                    op.I1_arr = np.hstack((op.I1_arr, new_cols))
-                    op.d_WI_f4_arr = np.hstack((op.d_WI_f4_arr, new_cols))
-                    op.d_OM_f4_arr = np.hstack((op.d_OM_f4_arr, new_cols))
+                    new_cols = np.zeros((num_d_f2_f3, num_dist, num_new_colns))
+                    op.f2_arr = np.dstack((op.f2_arr, new_cols))
+                    op.f3_arr = np.dstack((op.f2_arr, new_cols))
+                    op.norm_arr = np.dstack((op.norm_arr, new_cols))
+                    op.d_OM_f4_arr = np.dstack((op.d_OM_f4_arr, new_cols))
 
-                    new_cols = np.zeros((num_dist, num_new_colns, num_dist))
-                    op.mag_arr = np.hstack((op.mag_arr, new_cols))
-                    op.img_dist = np.hstack((op.img_dist, new_cols))
+                    new_cols = np.zeros((num_d_f2_f3, num_dist, num_new_colns, num_dist))
+                    op.mag_arr = np.dstack((op.mag_arr, new_cols))
+                    op.rw_dist = np.dstack((op.rw_dist, new_cols))
+                    op.img_dist = np.dstack((op.img_dist, new_cols))
+                    op.diff_dist = np.dstack((op.diff_dist, new_cols))
                 output_arrays_resized = 'True'
             # END Check if number of solutions is more than previously assumed num_solns. If yes, expand all matrices
 
             for curr_soln in unique_soln_l:
-                str = "curr_soln_index = %d ========================" % (unique_soln_l.index(curr_soln))
-                print(str)
 
                 # if(curr_soln < 4):
                 #     continue
 
                 soln_index = unique_soln_l.index(curr_soln)
                 IOD.f2 = curr_soln
-                op.f2_arr[dist_index, soln_index] = IOD.f2
+                # op.f2_arr[dist_index, soln_index] = IOD.f2
 
                 custom_prnt("\n")
                 str = "f1 = %f cm" % (IOD.f1)
@@ -656,23 +692,24 @@ def main4():
                 custom_prnt(str)
                 custom_prnt(OO_l)
                 rounded_norm = round(IOD.norm, 2)
-                op.norm_arr[dist_index, soln_index] = rounded_norm
+                op.norm_arr[d_f2_f3_index,dist_index, soln_index] = rounded_norm
                 str = "norm = %f" % (rounded_norm)
                 custom_prnt(str)
                 # END Verify that TT ~= TA
 
                 # Calculate where image of real world is formed
                 # Calculate d_WI_f4
-                IOD.populate_d_eye(IOD.d_vip_eye)
-                print(IOD.d_W_f1)
+                # IOD.populate_d_eye(IOD.d_vip_eye)
+                IOD.d_W_f1 = IOD.d_vip_eye
                 IOD.propagate_rw_all(IOD.d_W_f1)
                 # Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
-                op.I1_arr[dist_index, soln_index] = IOD.I1
-                op.d_f1_LCoS_arr[dist_index] = IOD.d_f1_LCoS
+                str = "I1 = %f" % (IOD.I1)
+                custom_prnt(str)
+                str = "d_f1_LCoS = %f" % (IOD.d_f1_LCoS)
+                custom_prnt(str)
                 # END Verify that the image of real world at d_W_f1 is coming to focus at the LCoS
                 str = "d_WI_f4 = %f" % (IOD.d_WI_f4)
                 custom_prnt(str)
-                op.d_WI_f4_arr[dist_index, soln_index] = IOD.d_WI_f4
                 # END Calculate where image of real world is formed
 
                 # Calculate where image of occlusion mask
@@ -681,6 +718,12 @@ def main4():
                     IOD.d_OM_f4 = IOD.d_WI_f4
                 else:
                     custom_prnt("RW at vip did not form at LCoS")
+                    # str = "d_vip_eye = %f; d_W_f1 = %f" % (IOD.d_vip_eye, IOD.d_W_f1)
+                    # custom_prnt(str)
+                    # str = "saveI1 = %f; saveO1 = %f; savef1 = %f" % (saveI1, saveO1, savef1)
+                    # custom_prnt(str)
+                    # str = "I1 = %f; O1 = %f; f1 = %f" % (IOD.I1, IOD.O1, IOD.f1)
+                    # custom_prnt(str)
                     IOD.propagate_om()
                 # END Calculate where image of occlusion mask
                 str = "d_OM_f4 = %f" %(IOD.d_OM_f4)
@@ -688,13 +731,10 @@ def main4():
                 str = "d_W_f1 = %f" % (-IOD.d_W_f1)
                 custom_prnt(str)
 
-                op.d_OM_f4_arr[dist_index, soln_index] = IOD.d_OM_f4
-                op.d_W_f1_arr[dist_index] = -IOD.d_W_f1
+                op.d_OM_f4_arr[d_f2_f3_index,dist_index, soln_index] = IOD.d_OM_f4
 
                 str = "Magnification at all distances:"
                 custom_prnt(str)
-                diff_l = []
-                mag_l = []
                 for ncurr_dist in dists_l:
                     ncurr_dist_index = dists_l.index(ncurr_dist)
 
@@ -704,27 +744,50 @@ def main4():
                     IOD.propagate_rw_all(IOD.d_W_f1) # Assume that ncurr_dist = d_W_f1
 
                     diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
-                    diff_l.append(diff_dist)
-                    op.img_dist[dist_index, soln_index, ncurr_dist_index] = diff_dist
+                    op.rw_dist[d_f2_f3_index, dist_index, soln_index, ncurr_dist_index] = IOD.d_W_f1
+                    op.img_dist[d_f2_f3_index, dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
+                    op.diff_dist[d_f2_f3_index, dist_index, soln_index, ncurr_dist_index] = diff_dist
 
-                    mag_l.append(IOD.rw_magnification)
-                    op.mag_arr[dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
+                    op.mag_arr[d_f2_f3_index, dist_index, soln_index, ncurr_dist_index] = IOD.rw_magnification
 
+    # Print relevant info from op
+    for d_f2_f3 in d_f2_f3_l:
+        iter1 = d_f2_f3_l.index(d_f2_f3)
+        str = "d_f2_f3 = %0.2f" % (d_f2_f3)
+        print(str)
+        for dist in dists_l:
+            iter2 = dists_l.index(dist)
+            str = "    dist = %0.2f" % (dist)
+            print(str)
+            mag_mean_l = []
+            mag_std_l = []
+            diff_mean_l = []
+            diff_std_l = []
+            for iter3 in range(0, num_soln):
+                # str = "soln_number = %0.2f ========================" % (iter3)
+                # print(str)
+                mag_l = op.mag_arr[iter1, iter2, iter3, :]
+                diff_l = op.diff_dist[iter1, iter2, iter3, :]
 
+                mag_mean_l.append(np.mean(mag_l))
+                mag_std_l.append(np.std(mag_l))
+                diff_mean_l.append(np.mean(diff_l))
+                diff_std_l.append(np.std(diff_l))
+                # str = 'Avg(mag): %0.2f  Std(mag): %0.2f  Avg(dif): %0.2f  Std(dif): %0.2f' % (np.mean(mag_l), np.std(mag_l), np.mean(diff_l), np.std(diff_l))
+                # print(str)
 
-                mag_l_rounded = [round(elem,2) for elem in mag_l]
-                # print(mag_l_rounded)
-                mag_arr = np.array(mag_l, dtype=np.float64)
+            mag_one = np.array([1]*len(mag_mean_l))
+            mag_diff_from_1 = np.array(mag_mean_l) - mag_one
+            # print(mag_diff_from_1)
+            mag_diff_from_1 = np.multiply(mag_diff_from_1, mag_diff_from_1)
+            # print(mag_diff_from_1)
+            min_index = np.argmin(mag_diff_from_1)
 
-                diff_l_rounded = [round(elem,2) for elem in diff_l]
-                # print(diff_l_rounded)
-                diff_arr = np.array(diff_l, dtype=np.float64)
+            str = '        AVG(mag): %0.2f  STD(mag): %0.2f  AVG(dif): %0.2f  STD(dif): %0.2f' % (mag_mean_l[min_index], mag_std_l[min_index], diff_mean_l[min_index], diff_std_l[min_index])
+            print(str)
+        print('\n')
 
-                str = 'Avg(mag): %0.2f  Std(mag): %0.2f  Avg(dif): %0.2f  Std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
-                print(str)
-                print('\n')
-
-    # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+    graph_outputs(op, d_f2_f3_l, dists_l, unique_soln_l, outputs_dir, ylabels_l, ylim_l)
 
 
 '''
@@ -1067,5 +1130,5 @@ def main_all():
             IOD.d_vip_eye = curr_dist
     
 if __name__ == '__main__':
-    main5()
+    main4()
 
