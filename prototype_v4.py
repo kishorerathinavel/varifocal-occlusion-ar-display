@@ -1004,10 +1004,10 @@ def main9():
     graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
 '''
-Modelling the optical system from
+Modelling a modified optical system from
 Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
 '''
-def main10():
+def main10_modified():
     IOD = OD()
     op = outputs()
     # diop_diff = 0.6
@@ -1035,7 +1035,7 @@ def main10():
     # howlett_t = howlett_d + 4*IOD.f1
     howlett_t = 4*IOD.f1
 
-    d_f2_f3_l = [3, 8, 15, 17, 19, 20, 21, 23]
+    d_f2_f3_l = [17, 19, 20, 21, 23]
     num_d_f2_f3 = len(d_f2_f3_l)
     # d_f2_f3_l = list(range(3, 28, 5))
     # d_f2_f3_l.append(howlett_t)
@@ -1076,6 +1076,97 @@ def main10():
             IOD.propagate_rw_all(IOD.d_W_f1) # Assume that dist = d_W_f1
 
             diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
+            diff_l.append(diff_dist)
+
+            mag_l.append(IOD.rw_magnification)
+
+
+        mag_arr = np.array(mag_l, dtype=np.float64)
+        diff_arr = np.array(diff_l, dtype=np.float64)
+
+        print('    vip_dist = inf | avg(mag): %0.2f | std(mag): %0.2f | avg(dif): %6.2f | std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr)))
+        # str = '        avg(mag): %0.2f  std(mag): %0.2f  avg(dif): %0.2f  std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
+        # print(str)
+        print('\n')
+
+        # soln_l = []
+        # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+    
+'''
+Modelling the optical system from
+Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
+'''
+def main10():
+    IOD = OD()
+    op = outputs()
+    # diop_diff = 0.6
+    # max_dist = convert_m2cm(10)
+    # num_dist = 3
+    # dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = [1000, 250, 64, 16]
+    num_dist = len(dists_l)
+
+    # Assume that num_solns = 2
+    # All output matrices have num_dist rows and num_soln columns
+    std_output_arr = np.zeros(num_dist)
+    op.mag_arr = np.copy(std_output_arr)
+    op.img_dist = np.copy(std_output_arr)
+
+    ylabels_l = ["mag_arr", "img_dist"]
+    ylim_l = [[-1.5, 1.5], [-1, -1]]
+
+    IOD.f1 = 5
+    IOD.f2 = 5
+    IOD.f3 = 5
+    IOD.f4 = 5
+
+    howlett_d = IOD.d_f1_f2
+    howlett_t = howlett_d + 4*IOD.f1
+    # howlett_t = 4*IOD.f1
+
+    d_f2_f3_l = [25, 27, howlett_t, 29, 31]
+    num_d_f2_f3 = len(d_f2_f3_l)
+    # d_f2_f3_l = list(range(3, 28, 5))
+    # d_f2_f3_l.append(howlett_t)
+    for IOD.d_f2_f3 in d_f2_f3_l:
+        str = "d_f2_f3 = %0.2f" % (IOD.d_f2_f3)
+        print(str)
+
+        IOD.d_f1_f2 = 2*IOD.f1
+        IOD.d_f3_f4 = 2*IOD.f1
+        IOD.calc_ABCD_matrices()
+        IOD.calc_TA()
+        II = Matrix([[1,0], [0,1]])
+        IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
+        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+        TT = II
+        # TT = S14
+        IOD.TT = II
+
+        IOD.calc_TA_diff_TT()
+        OO = IOD.OO
+        OO_l = OO.tolist()
+        flat_OO_l = []
+        conv_lol_flat_l(OO_l, flat_OO_l)
+
+        str = "Magnification at all distances:"
+        custom_prnt(str)
+        diff_l = []
+        mag_l = []
+        for dist in dists_l:
+            # str = "    dist = %0.2f" % (dist)
+            # print(str)
+
+            dist_index = dists_l.index(dist)
+
+            # IOD.populate_d_eye(dist)
+            IOD.d_vip_eye = dist
+            IOD.d_W_f1 = IOD.d_vip_eye - IOD.d_f4_eye - howlett_d
+            IOD.d_W_f4 = IOD.d_vip_eye - IOD.d_f4_eye
+
+            IOD.propagate_rw_all(IOD.d_W_f1) # Assume that dist = d_W_f1
+
+            diff_dist = IOD.d_WI_f4 + IOD.d_W_f4
             diff_l.append(diff_dist)
 
             mag_l.append(IOD.rw_magnification)
@@ -1153,5 +1244,5 @@ def main_all():
             IOD.d_vip_eye = curr_dist
     
 if __name__ == '__main__':
-    main10()
+    main10_modified()
 
