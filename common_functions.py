@@ -10,7 +10,7 @@ def convert_m2cm(value_m):
 def calculate_image_distance(d_O, f):
     d_I = 0
     if(d_O == f):
-        d_I = np.sign(d_O)*np.sign(f)*np.inf
+        d_I = np.sign(d_O)*np.sign(f)*100000 # large number approximating infinity
     else:
         d_I = (d_O*f)/(d_O - f)
     return d_I

@@ -269,12 +269,18 @@ solve using python solver
 def main5():
     IOD = OD()
     op = outputs()
-    diop_diff = 0.6
-    max_dist = convert_m2cm(10)
-    num_dist = 3
-    dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    # diop_diff = 0.6
+    # max_dist = convert_m2cm(10)
+    # num_dist = 3
+    # dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = [1000, 250, 64, 16]
+    num_dist = len(dists_l)
 
-    d_f2_f3_l = list(range(3, 18, 5))
+    d_f2_f3_l = [3, 8, 13, 15, 16, 17, 23]
+    # d_f2_f3_l = list(range(3, 28, 5))
+    # d_f2_f3_l.append(16)
+    # d_f2_f3_l.sort()
+    # d_f2_f3_l = list(range(3, 18, 5))
     num_d_f2_f3 = len(d_f2_f3_l)
 
     # Assume that num_solns = 2
@@ -329,8 +335,8 @@ def main5():
             II = Matrix([[1,0], [0,1]])
             IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
             S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-            # TT = II
-            TT = S14
+            TT = II
+            # TT = S14
             IOD.TT = II
 
             IOD.calc_TA_diff_TT()
@@ -490,8 +496,8 @@ def main5():
         print(str)
         for dist in dists_l:
             iter2 = dists_l.index(dist)
-            str = "    dist = %0.2f" % (dist)
-            print(str)
+            # str = "    dist = %0.2f" % (dist)
+            # print(str)
             mag_mean_l = []
             mag_std_l = []
             diff_mean_l = []
@@ -516,12 +522,12 @@ def main5():
             # print(mag_diff_from_1)
             min_index = np.argmin(mag_diff_from_1)
 
-            str = '        AVG(mag): %0.2f  STD(mag): %0.2f  AVG(dif): %0.2f  STD(dif): %0.2f' % (mag_mean_l[min_index], mag_std_l[min_index], diff_mean_l[min_index], diff_std_l[min_index])
-            print(str)
+            print('    vip_dist = %7.2f | avg(mag): %0.2f | std(mag): %0.2f | avg(dif): %6.2f | std(dif): %0.2f' % (dist, mag_mean_l[min_index], mag_std_l[min_index], diff_mean_l[min_index], diff_std_l[min_index]))
         print('\n')
 
     # Collect the average difference of the better solution
-    graph_outputs(op, d_f2_f3_l, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+    # graph_outputs(op, d_f2_f3_l, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+    # end of main5
 
 '''
 f1 = f4
@@ -531,12 +537,20 @@ d12 = d34
 def main4():
     IOD = OD()
     op = outputs()
-    diop_diff = 0.6
-    max_dist = convert_m2cm(10)
-    num_dist = 4
-    dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    # diop_diff = 0.6
+    # max_dist = convert_m2cm(10)
+    # num_dist = 3
+    # dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = [1000, 250, 64, 16]
+    num_dist = len(dists_l)
 
-    d_f2_f3_l = list(range(3, 18, 5))
+    d_f2_f3_l = [3, 8, 13, 15, 16, 17, 23]
+    # d_f2_f3_l = list(range(3, 28, 5))
+    # d_f2_f3_l.append(15)
+    # d_f2_f3_l.append(16)
+    # d_f2_f3_l.append(17)
+    # d_f2_f3_l.sort()
+    # d_f2_f3_l = list(range(3, 18, 5))
     num_d_f2_f3 = len(d_f2_f3_l)
 
     # Assume that num_solns = 2
@@ -588,8 +602,8 @@ def main4():
             II = Matrix([[1,0], [0,1]])
             IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
             S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-            # TT = II
-            TT = S14
+            TT = II
+            # TT = S14
             IOD.TT = II
 
             IOD.calc_TA_diff_TT()
@@ -757,8 +771,8 @@ def main4():
         print(str)
         for dist in dists_l:
             iter2 = dists_l.index(dist)
-            str = "    dist = %0.2f" % (dist)
-            print(str)
+            # str = "    dist = %0.2f" % (dist)
+            # print(str)
             mag_mean_l = []
             mag_std_l = []
             diff_mean_l = []
@@ -783,11 +797,10 @@ def main4():
             # print(mag_diff_from_1)
             min_index = np.argmin(mag_diff_from_1)
 
-            str = '        AVG(mag): %0.2f  STD(mag): %0.2f  AVG(dif): %0.2f  STD(dif): %0.2f' % (mag_mean_l[min_index], mag_std_l[min_index], diff_mean_l[min_index], diff_std_l[min_index])
-            print(str)
+            print('    vip_dist = %7.2f | avg(mag): %0.2f | std(mag): %0.2f | avg(dif): %7.2f | std(dif): %6.2f' % (dist, mag_mean_l[min_index], mag_std_l[min_index], diff_mean_l[min_index], diff_std_l[min_index]))
         print('\n')
-
-    graph_outputs(op, d_f2_f3_l, dists_l, unique_soln_l, outputs_dir, ylabels_l, ylim_l)
+    # end of main4
+    # graph_outputs(op, d_f2_f3_l, dists_l, unique_soln_l, outputs_dir, ylabels_l, ylim_l)
 
 
 '''
@@ -997,10 +1010,12 @@ Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented realit
 def main10():
     IOD = OD()
     op = outputs()
-    diop_diff = 0.3
-    max_dist = convert_m2cm(10)
-    num_dist = 15
-    dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    # diop_diff = 0.6
+    # max_dist = convert_m2cm(10)
+    # num_dist = 3
+    # dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = [1000, 250, 64, 16]
+    num_dist = len(dists_l)
 
     # Assume that num_solns = 2
     # All output matrices have num_dist rows and num_soln columns
@@ -1011,63 +1026,71 @@ def main10():
     ylabels_l = ["mag_arr", "img_dist"]
     ylim_l = [[-1.5, 1.5], [-1, -1]]
 
-    IOD.f1 = 4
-    IOD.f2 = 4
-    IOD.f3 = 4
-    IOD.f4 = 4
+    IOD.f1 = 5
+    IOD.f2 = 5
+    IOD.f3 = 5
+    IOD.f4 = 5
 
     howlett_d = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
     # howlett_t = howlett_d + 4*IOD.f1
     howlett_t = 4*IOD.f1
 
-    IOD.d_f2_f3 = howlett_t
+    d_f2_f3_l = [3, 8, 15, 17, 19, 20, 21, 23]
+    num_d_f2_f3 = len(d_f2_f3_l)
+    # d_f2_f3_l = list(range(3, 28, 5))
+    # d_f2_f3_l.append(howlett_t)
+    for IOD.d_f2_f3 in d_f2_f3_l:
+        str = "d_f2_f3 = %0.2f" % (IOD.d_f2_f3)
+        print(str)
 
-    IOD.calc_ABCD_matrices()
-    IOD.calc_TA()
-    II = Matrix([[1,0], [0,1]])
-    IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-    S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-    TT = II
-    IOD.TT = II
+        IOD.d_f1_f2 = 2*IOD.f1
+        IOD.d_f3_f4 = 2*IOD.f1
+        IOD.calc_ABCD_matrices()
+        IOD.calc_TA()
+        II = Matrix([[1,0], [0,1]])
+        IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
+        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+        TT = II
+        # TT = S14
+        IOD.TT = II
 
-    IOD.calc_TA_diff_TT()
-    OO = IOD.OO
-    OO_l = OO.tolist()
-    flat_OO_l = []
-    conv_lol_flat_l(OO_l, flat_OO_l)
+        IOD.calc_TA_diff_TT()
+        OO = IOD.OO
+        OO_l = OO.tolist()
+        flat_OO_l = []
+        conv_lol_flat_l(OO_l, flat_OO_l)
 
-    str = "Magnification at all distances:"
-    custom_prnt(str)
-    diff_l = []
-    mag_l = []
-    for ncurr_dist in dists_l:
-        ncurr_dist_index = dists_l.index(ncurr_dist)
+        str = "Magnification at all distances:"
+        custom_prnt(str)
+        diff_l = []
+        mag_l = []
+        for dist in dists_l:
+            # str = "    dist = %0.2f" % (dist)
+            # print(str)
 
-        # IOD.populate_d_eye(ncurr_dist)
-        IOD.d_W_f1 = ncurr_dist
+            dist_index = dists_l.index(dist)
 
-        IOD.propagate_rw_all(IOD.d_W_f1) # Assume that ncurr_dist = d_W_f1
+            # IOD.populate_d_eye(dist)
+            IOD.d_W_f1 = dist
 
-        diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
-        diff_l.append(diff_dist)
+            IOD.propagate_rw_all(IOD.d_W_f1) # Assume that dist = d_W_f1
 
-        mag_l.append(IOD.rw_magnification)
+            diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
+            diff_l.append(diff_dist)
+
+            mag_l.append(IOD.rw_magnification)
 
 
-    mag_l_rounded = [round(elem,2) for elem in mag_l]
-    # print(mag_l_rounded)
-    mag_arr = np.array(mag_l, dtype=np.float64)
+        mag_arr = np.array(mag_l, dtype=np.float64)
+        diff_arr = np.array(diff_l, dtype=np.float64)
 
-    diff_l_rounded = [round(elem,2) for elem in diff_l]
-    # print(diff_l_rounded)
-    diff_arr = np.array(diff_l, dtype=np.float64)
+        print('    vip_dist = inf | avg(mag): %0.2f | std(mag): %0.2f | avg(dif): %6.2f | std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr)))
+        # str = '        avg(mag): %0.2f  std(mag): %0.2f  avg(dif): %0.2f  std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
+        # print(str)
+        print('\n')
 
-    str = 'Avg(mag): %0.2f  Std(mag): %0.2f  Avg(dif): %0.2f  Std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
-    print(str)
-    print('\n')
- 
-    # soln_l = []
-    # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+        # soln_l = []
+        # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
 # An attempt to automate main4, main5, etc. by specifying just the unknowns
 def main_all():
@@ -1130,5 +1153,5 @@ def main_all():
             IOD.d_vip_eye = curr_dist
     
 if __name__ == '__main__':
-    main4()
+    main10()
 
