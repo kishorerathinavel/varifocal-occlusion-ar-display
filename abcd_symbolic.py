@@ -1,124 +1,31 @@
-from common_functions import *
+'''
+Refer to abcd.svg for a diagram of the optical designs modelled here
+Description of each main function:
++ tunable_all_symmetric: Refer to abcd.svg/png
+  1. f1 = f4
+  2. f2 = f3
+  3. d_f1_f2 = d_f3_f4
++ tunable_f1_f2_f3: Refer to abcd.svg/png
+  1. f4 is fixed-focal-length
+  2. d_f1_f2 = d_f3_f4
++ tunable_f1_f2: Refer to abcd.svg/png
+  + f3 and f4 are fixed focal length
++ howlett: Howlett-Smithwick-SID2017
++ howlett_1D: Single optical axis version of Howlett-Smithwick-SID2017
+'''
+
+import common_functions as cf
 from sympy import *
 import numpy as np
-from numpy import linalg as LA
 import matplotlib.pyplot as plt
-#from sympy.core.symbol import symbols
-#from sympy.solvers.solveset import nonlinsolve
+import OD
 
 prnt_flag = 'False'
 # prnt_flag = 'True'
 outputs_dir = 'outputs'
 
-class OD(): # Short for Implemented Optical Design
-    def __init__(self):
-        self.d_f1_LCoS = 4.0 # Minimum possible
-        self.d_LCoS_f2 = 4.0 # Minimum possible
-        self.d_f1_f2 = self.d_f1_LCoS + self.d_LCoS_f2
-        self.d_f2_f3 = 16 # Guess
-        self.d_f3_f4 = self.d_f1_f2
-        self.d_f4_eye = 2.0
-
-        # Uninitialized
-        self.f1 = 0.0
-        self.f2 = 0.0
-        self.f3 = 0.0
-        self.f4 = 0.0
-        self.d_W_f1 = 0.0  # World (not necessarily vip) to f1
-        self.d_W_eye = 0.0 # World (not necessarily vip) to eye
-        self.d_WI_eye = 0.0 # Image of world (not necessarily image of world at vip) to eye
-        self.d_OI_eye = 0.0 # Occlusion mask to eye
-        self.d_vip_eye = 0.0
-        self.magnification = 0.0
-
-    def populate_d_eye(self, ncurr_dist):
-        self.d_W_eye = ncurr_dist
-        self.d_W_f1 = self.d_W_eye - self.d_f4_eye - self.d_f3_f4 - self.d_f2_f3 - self.d_f1_f2
-
-    def propagate_rw_all(self, ncurr_dist):
-        self.O1 = ncurr_dist
-        self.I1 = calculate_image_distance(self.O1, self.f1)
-        self.m1 = self.I1/self.O1
-        self.O2 = self.d_f1_f2 - self.I1
-        self.I2 = calculate_image_distance(self.O2, self.f2)
-        self.m2 = self.I2/self.O2
-        self.O3 = self.d_f2_f3 - self.I2
-        self.I3 = calculate_image_distance(self.O3, self.f3)
-        self.m3 = self.I3/self.O3
-        self.O4 = self.d_f3_f4 - self.I3
-        self.I4 = calculate_image_distance(self.O4, self.f4)
-        self.m4 = self.I4/self.O4
-        self.rw_magnification = self.m1*self.m2*self.m3*self.m4
-        self.d_WI_f4 = self.I4
-        self.d_WI_f1 = self.d_WI_f4 + self.d_f1_f2 + self.d_f2_f3 + self.d_f3_f4
-
-    def propagate_om(self):
-        self.O2 = self.d_LCoS_f2
-        self.I2 = calculate_image_distance(self.O2, self.f2)
-        self.O3 = self.d_f2_f3 - self.I2
-        self.I3 = calculate_image_distance(self.O3, self.f3)
-        self.O4 = self.d_f3_f4 - self.I3
-        self.I4 = calculate_image_distance(self.O4, self.f4)
-        self.d_OM_f4 = self.I4
-
-    def calc_ABCD_matrices(self):
-        self.M1 = makeLensMatrix(1/self.f1)
-        self.M2 = makeLensMatrix(1/self.f2)
-        self.M3 = makeLensMatrix(1/self.f3)
-        self.M4 = makeLensMatrix(1/self.f4)
-        self.S12 = makeFreeSpacePropagationMatrix(self.d_f1_f2)
-        self.S23 = makeFreeSpacePropagationMatrix(self.d_f2_f3)
-        self.S34 = makeFreeSpacePropagationMatrix(self.d_f3_f4)
-
-    def calc_TA(self):
-            self.TA = self.M4*self.S34*self.M3*self.S23*self.M2*self.S12*self.M1
-
-    def prototype_v4_populate_dependent_focalLengths(self):
-        self.f3 = self.f2
-        self.f4 = self.f1
-
-    def calc_TA_diff_TT(self):
-        self.OO = self.TT - self.TA
-
-    def calc_OO_norm(self):
-        OO_np = np.array(self.OO.tolist()).astype(np.float64)
-        self.norm = LA.norm(OO_np)
-    
 class outputs():
     pass
-
-def main_nonlinsolve_eg():
-    x, y, z = symbols('x, y, z', real=True)
-    custom_prnt(nonlinsolve([x*y - 1, 4*x**2 + y**2 - 5], [x, y]))
-
-def convert_sympy_mutableDenseMatrix_custom_prntableList(denseMatrix):
-    denseMatrix_np = np.array(denseMatrix.tolist()).astype(np.float64)
-    r_denseMatrix_np = np.round(denseMatrix_np, 2)
-    denseMatrix_l = r_denseMatrix_np.tolist()
-    return denseMatrix_l
-
-def calc_perceptually_useful_distances(max_dist, diop_diff, num_dist):
-    # Assuming that min_dist is specified in cm
-    max_diop_dist = convert_cm2dpt(max_dist)
-    prev_diop_dist = max_diop_dist
-    dists_l = []
-    dists_l.append(max_dist)
-    for iter in range(1,num_dist):
-        next_diop_dist = prev_diop_dist + diop_diff
-        next_dist = convert_dpt2cm(next_diop_dist)
-        dists_l.append(next_dist)
-        prev_diop_dist = next_diop_dist
-    return dists_l
-
-def conv_lol_flat_l(my_input, output_list):
-    if isinstance(my_input, list):
-        for element in my_input:
-            conv_lol_flat_l(element, output_list)
-    elif isinstance(my_input, Tuple):
-        for element in my_input:
-            conv_lol_flat_l(element, output_list)
-    else:
-        return output_list.append(my_input)
 
 def custom_prnt(str):
     if(prnt_flag == 'True'):
@@ -189,90 +96,18 @@ def graph_outputs(op, d_f2_f3_l, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l
                             plt.ylim(curr_ylim[0], curr_ylim[1])
                         plt.savefig(str)
         iter_ylabel = iter_ylabel + 1
-        
 
 '''
 f4 = 5
 d12 = d34
-solve iteratively
 '''
-def main6():
-    IOD = OD()
-    op = outputs()
-    diop_diff = 0.5
-    min_dist = 25
-    num_dist = 8
-    dists_l = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
-
-    # Assume that num_solns = 2
-    # All output matrices have num_dist rows and num_soln columns
-    num_soln = 2
-    prev_num_soln = 2
-    std_output_arr = np.zeros((num_dist, num_soln))
-    op.f1_arr = np.copy(std_output_arr)
-    op.f2_arr = np.copy(std_output_arr)
-    op.f3_arr = np.copy(std_output_arr)
-    op.norm_arr = np.copy(std_output_arr)
-    op.I1_arr = np.copy(std_output_arr)
-    op.d_f1_LCoS_arr =  np.copy(std_output_arr)
-    op.d_WI_f4_arr = np.copy(std_output_arr)
-    op.d_OM_f4_arr = np.copy(std_output_arr)
-    op.d_W_f1_arr = np.copy(std_output_arr)
-    op.mag_arr = np.copy(std_output_arr)
-
-    for curr_dist in dists_l:
-        dist_index = dists_l.index(curr_dist)
-        IOD.d_vip_eye = curr_dist # Should be > 23
-        str = "d_vip_eye = %f" % curr_dist
-        custom_prnt(str)
-
-        IOD.populate_d_eye(curr_dist)
-        IOD.O1 = IOD.d_W_f1
-        IOD.I1 = IOD.d_f1_LCoS
-        IOD.f1 = calculate_focal_length(IOD.O1, IOD.I1)
-        m1 = -IOD.I1/IOD.O1
-        IOD.O2 = IOD.d_LCoS_f2
-        IOD.I2 = -(IOD.d_LCoS_f2 + IOD.d_f1_LCoS + IOD.d_W_f1)
-        IOD.f2 = calculate_focal_length(IOD.O2, IOD.I2)
-        m2 = -IOD.I2/IOD.O2
-        mT = m1*m2
-
-        str = "m1 = %f, m2 = %f, mT = %f" % (m1, m2, mT)
-        custom_prnt(str)
-        return
-
-        II = Matrix([[1,0], [0,1]])
-        IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-        TT = II
-        IOD.TT = S14
-
-        sym_f3 = Symbol('f_3')
-        IOD.f3 = sym_f3
-        IOD.f4 = 5
-        IOD.calc_ABCD_matrices()
-        IOD.calc_TA()
-        IOD.calc_TA_diff_TT()
-        OO = IOD.OO
-        custom_prnt_matrix(OO)
-        soln_l = list(solve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f3]))
-        custom_prnt(soln_l)
-
-        # sym_f2 = Symbol('f_2')
-        # IOD.f2 = sym_f2
-
-'''
-f4 = 5
-d12 = d34
-solve using python solver
-'''
-def main5():
-    IOD = OD()
+def tunable_f1_f2_f3():
+    IOD = OD.optical_design()
     op = outputs()
     # diop_diff = 0.6
-    # max_dist = convert_m2cm(10)
+    # max_dist = cf.convert_m2cm(10)
     # num_dist = 3
-    # dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    # dists_l = cf.calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
     dists_l = [1000, 250, 64, 16]
     num_dist = len(dists_l)
 
@@ -322,7 +157,7 @@ def main5():
 
             # IOD.populate_d_eye(curr_dist)
             IOD.d_W_f1 = IOD.d_vip_eye
-            IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
+            IOD.f1 = cf.calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
             op.f1_arr[d_f2_f3_index,dist_index] = IOD.f1
             sym_f2 = Symbol('f_2')
             IOD.f2 = sym_f2
@@ -334,7 +169,7 @@ def main5():
 
             II = Matrix([[1,0], [0,1]])
             IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-            S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+            S14 = cf.makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
             TT = II
             # TT = S14
             IOD.TT = II
@@ -344,7 +179,7 @@ def main5():
 
             OO_l = OO.tolist()
             flat_OO_l = []
-            conv_lol_flat_l(OO_l, flat_OO_l)
+            cf.conv_lol_flat_l(OO_l, flat_OO_l)
 
             soln_l = list(nonlinsolve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f2, sym_f3]))
             custom_prnt("Solutions")
@@ -399,15 +234,15 @@ def main5():
                 custom_prnt("\n")
                 str = "f1 = %f cm" % (IOD.f1)
                 custom_prnt(str)
-                str = "f1 = %f D" % (convert_cm2dpt(IOD.f1))
+                str = "f1 = %f D" % (cf.convert_cm2dpt(IOD.f1))
                 custom_prnt(str)
                 str = "f2 = %f cm" % (IOD.f2)
                 custom_prnt(str)
-                str = "f2 = %f D" % (convert_cm2dpt(IOD.f2))
+                str = "f2 = %f D" % (cf.convert_cm2dpt(IOD.f2))
                 custom_prnt(str)
                 str = "f3 = %f cm" % (IOD.f3)
                 custom_prnt(str)
-                str = "f3 = %f D" % (convert_cm2dpt(IOD.f3))
+                str = "f3 = %f D" % (cf.convert_cm2dpt(IOD.f3))
                 custom_prnt(str)
 
                 # Verify that TA ~= TT
@@ -416,17 +251,17 @@ def main5():
                 IOD.calc_TA_diff_TT()
                 IOD.calc_OO_norm()
 
-                TA_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
+                TA_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
                 str = "Actual Transfer matrix:"
                 custom_prnt(str)
                 custom_prnt(TA_l)
 
-                TT_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
+                TT_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
                 str = "Target Transfer matrix:"
                 custom_prnt(str)
                 custom_prnt(TT_l)
 
-                OO_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
+                OO_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
                 str = "residual matrix"
                 custom_prnt(str)
                 custom_prnt(OO_l)
@@ -527,20 +362,20 @@ def main5():
 
     # Collect the average difference of the better solution
     # graph_outputs(op, d_f2_f3_l, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
-    # end of main5
+    # end of tunable_f1_f2_f3
 
 '''
 f1 = f4
 f2 = f3
 d12 = d34
 '''
-def main4():
-    IOD = OD()
+def tunable_all_symmetric():
+    IOD = OD.optical_design()
     op = outputs()
     # diop_diff = 0.6
-    # max_dist = convert_m2cm(10)
+    # max_dist = cf.convert_m2cm(10)
     # num_dist = 3
-    # dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    # dists_l = cf.calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
     dists_l = [1000, 250, 64, 16]
     num_dist = len(dists_l)
 
@@ -591,7 +426,7 @@ def main4():
 
             # IOD.populate_d_eye(curr_dist)
             IOD.d_W_f1 = IOD.d_vip_eye
-            IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
+            IOD.f1 = cf.calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
             op.f1_arr[d_f2_f3_index,dist_index] = IOD.f1
             sym_f2 = Symbol('f_2')
             IOD.f2 = sym_f2
@@ -601,7 +436,7 @@ def main4():
 
             II = Matrix([[1,0], [0,1]])
             IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-            S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+            S14 = cf.makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
             TT = II
             # TT = S14
             IOD.TT = II
@@ -612,7 +447,7 @@ def main4():
             # custom_prnt_matrix(OO)
             OO_l = OO.tolist()
             flat_OO_l = []
-            conv_lol_flat_l(OO_l, flat_OO_l)
+            cf.conv_lol_flat_l(OO_l, flat_OO_l)
 
             # Getting solutions for all equations together
             soln_l = list(nonlinsolve([OO[0,1], OO[0,0], OO[1,0], OO[1,1]], [sym_f2]))
@@ -620,7 +455,7 @@ def main4():
 
             # Converting from sympy set,tuple to python list
             soln_l2 = []
-            conv_lol_flat_l(soln_l, soln_l2)
+            cf.conv_lol_flat_l(soln_l, soln_l2)
             # END Converting from sympy set to python list
 
             # Extracting unique solutions
@@ -677,11 +512,11 @@ def main4():
                 custom_prnt("\n")
                 str = "f1 = %f cm" % (IOD.f1)
                 custom_prnt(str)
-                str = "f1 = %f D" % (convert_cm2dpt(IOD.f1))
+                str = "f1 = %f D" % (cf.convert_cm2dpt(IOD.f1))
                 custom_prnt(str)
                 str = "f2 = %f cm" % (IOD.f2)
                 custom_prnt(str)
-                str = "f2 = %f D" % (convert_cm2dpt(IOD.f2))
+                str = "f2 = %f D" % (cf.convert_cm2dpt(IOD.f2))
                 custom_prnt(str)
 
                 # Verify that TA ~= TT
@@ -691,17 +526,17 @@ def main4():
                 IOD.calc_TA_diff_TT()
                 IOD.calc_OO_norm()
 
-                TA_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
+                TA_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
                 str = "Actual Transfer matrix:"
                 custom_prnt(str)
                 custom_prnt(TA_l)
 
-                TT_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
+                TT_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
                 str = "Target Transfer matrix:"
                 custom_prnt(str)
                 custom_prnt(TT_l)
 
-                OO_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
+                OO_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
                 str = "residual matrix"
                 custom_prnt(str)
                 custom_prnt(OO_l)
@@ -799,7 +634,7 @@ def main4():
 
             print('    vip_dist = %7.2f | avg(mag): %0.2f | std(mag): %0.2f | avg(dif): %7.2f | std(dif): %6.2f' % (dist, mag_mean_l[min_index], mag_std_l[min_index], diff_mean_l[min_index], diff_std_l[min_index]))
         print('\n')
-    # end of main4
+    # end of tunable_all_symmetric
     # graph_outputs(op, d_f2_f3_l, dists_l, unique_soln_l, outputs_dir, ylabels_l, ylim_l)
 
 
@@ -807,13 +642,13 @@ def main4():
 f3 = f4 = 5
 d12 = d34
 '''
-def main9():
+def tunable_f1_f2():
     IOD = OD()
     op = outputs()
     diop_diff = 0.5
     min_dist = 25
     num_dist = 8
-    dists_l = calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
+    dists_l = cf.calc_perceptually_useful_distances(min_dist, diop_diff, num_dist)
 
     std_output_arr = np.zeros(num_dist)
     op.f1_arr = np.copy(std_output_arr)
@@ -846,7 +681,7 @@ def main9():
         custom_prnt(str)
 
         IOD.populate_d_eye(curr_dist)
-        IOD.f1 = calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
+        IOD.f1 = cf.calculate_focal_length(IOD.d_W_f1, IOD.d_f1_LCoS)
         op.f1_arr[dist_index] = IOD.f1
         sym_f2 = Symbol('f_2')
         IOD.f2 = sym_f2
@@ -857,7 +692,7 @@ def main9():
 
         II = Matrix([[1,0], [0,1]])
         IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+        S14 = cf.makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
         TT = II
         IOD.TT = II
 
@@ -866,7 +701,7 @@ def main9():
 
         OO_l = OO.tolist()
         flat_OO_l = []
-        conv_lol_flat_l(OO_l, flat_OO_l)
+        cf.conv_lol_flat_l(OO_l, flat_OO_l)
 
         soln_l = []
         for curr_oo in flat_OO_l:
@@ -919,11 +754,11 @@ def main9():
             custom_prnt("\n")
             str = "f1 = %f cm" % (IOD.f1)
             custom_prnt(str)
-            str = "f1 = %f D" % (convert_cm2dpt(IOD.f1))
+            str = "f1 = %f D" % (cf.convert_cm2dpt(IOD.f1))
             custom_prnt(str)
             str = "f2 = %f cm" % (IOD.f2)
             custom_prnt(str)
-            str = "f2 = %f D" % (convert_cm2dpt(IOD.f2))
+            str = "f2 = %f D" % (cf.convert_cm2dpt(IOD.f2))
             custom_prnt(str)
 
             # Verify that TA ~= TT
@@ -932,17 +767,17 @@ def main9():
             IOD.calc_TA_diff_TT()
             IOD.calc_OO_norm()
 
-            TA_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
+            TA_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TA)
             str = "Actual Transfer matrix:"
             custom_prnt(str)
             custom_prnt(TA_l)
 
-            TT_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
+            TT_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.TT)
             str = "Target Transfer matrix:"
             custom_prnt(str)
             custom_prnt(TT_l)
 
-            OO_l = convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
+            OO_l = cf.convert_sympy_mutableDenseMatrix_custom_prntableList(IOD.OO)
             str = "residual matrix"
             custom_prnt(str)
             custom_prnt(OO_l)
@@ -1002,18 +837,19 @@ def main9():
                 op.img_dist[dist_index, soln_index, ncurr_dist_index] = IOD.d_WI_f4
         
     graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+    # end of tunable_f1_f2
 
 '''
 Modelling a modified optical system from
 Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
 '''
-def main10_modified():
-    IOD = OD()
+def howlett_1D():
+    IOD = OD.optical_design()
     op = outputs()
     # diop_diff = 0.6
-    # max_dist = convert_m2cm(10)
+    # max_dist = cf.convert_m2cm(10)
     # num_dist = 3
-    # dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    # dists_l = cf.calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
     dists_l = [1000, 250, 64, 16]
     num_dist = len(dists_l)
 
@@ -1049,7 +885,7 @@ def main10_modified():
         IOD.calc_TA()
         II = Matrix([[1,0], [0,1]])
         IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+        S14 = cf.makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
         TT = II
         # TT = S14
         IOD.TT = II
@@ -1058,7 +894,7 @@ def main10_modified():
         OO = IOD.OO
         OO_l = OO.tolist()
         flat_OO_l = []
-        conv_lol_flat_l(OO_l, flat_OO_l)
+        cf.conv_lol_flat_l(OO_l, flat_OO_l)
 
         str = "Magnification at all distances:"
         custom_prnt(str)
@@ -1096,13 +932,13 @@ def main10_modified():
 Modelling the optical system from
 Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
 '''
-def main10():
+def howlett():
     IOD = OD()
     op = outputs()
     # diop_diff = 0.6
-    # max_dist = convert_m2cm(10)
+    # max_dist = cf.convert_m2cm(10)
     # num_dist = 3
-    # dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    # dists_l = cf.calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
     dists_l = [1000, 250, 64, 16]
     num_dist = len(dists_l)
 
@@ -1138,7 +974,7 @@ def main10():
         IOD.calc_TA()
         II = Matrix([[1,0], [0,1]])
         IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-        S14 = makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
+        S14 = cf.makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
         TT = II
         # TT = S14
         IOD.TT = II
@@ -1147,7 +983,7 @@ def main10():
         OO = IOD.OO
         OO_l = OO.tolist()
         flat_OO_l = []
-        conv_lol_flat_l(OO_l, flat_OO_l)
+        cf.conv_lol_flat_l(OO_l, flat_OO_l)
 
         str = "Magnification at all distances:"
         custom_prnt(str)
@@ -1183,15 +1019,15 @@ def main10():
         # soln_l = []
         # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
-# An attempt to automate main4, main5, etc. by specifying just the unknowns
+# An attempt to automate tunable_all_symmetric, tunable_f1_f2_f3, etc. by specifying just the unknowns
 def main_all():
     print('DO NOT USE THIS MAIN. IT''S WORK IN PROGRESS')
     IOD = OD()
     op = outputs()
     diop_diff = 0.6
-    max_dist = convert_m2cm(10)
+    max_dist = cf.convert_m2cm(10)
     num_dist = 5
-    dists_l = calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = cf.calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
 
     focal_lengths = ['f2', 'f3', 5]
     # print(type(focal_lengths[0]))
@@ -1244,5 +1080,9 @@ def main_all():
             IOD.d_vip_eye = curr_dist
     
 if __name__ == '__main__':
-    main10_modified()
+    tunable_f1_f2_f3()
+    # tunable_f1_f2()
+    # howlett()
+    # howlett_1D()
+    # tunable_all_symmetric()
 

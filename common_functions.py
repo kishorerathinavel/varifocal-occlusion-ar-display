@@ -1,6 +1,35 @@
 from sympy import *
 import numpy as np
 
+def calc_perceptually_useful_distances(max_dist, diop_diff, num_dist):
+    # Assuming that min_dist is specified in cm
+    max_diop_dist = cf.convert_cm2dpt(max_dist)
+    prev_diop_dist = max_diop_dist
+    dists_l = []
+    dists_l.append(max_dist)
+    for iter in range(1,num_dist):
+        next_diop_dist = prev_diop_dist + diop_diff
+        next_dist = cf.convert_dpt2cm(next_diop_dist)
+        dists_l.append(next_dist)
+        prev_diop_dist = next_diop_dist
+    return dists_l
+
+def conv_lol_flat_l(my_input, output_list):
+    if isinstance(my_input, list):
+        for element in my_input:
+            conv_lol_flat_l(element, output_list)
+    elif isinstance(my_input, Tuple):
+        for element in my_input:
+            conv_lol_flat_l(element, output_list)
+    else:
+        return output_list.append(my_input)
+
+def convert_sympy_mutableDenseMatrix_custom_prntableList(denseMatrix):
+    denseMatrix_np = np.array(denseMatrix.tolist()).astype(np.float64)
+    r_denseMatrix_np = np.round(denseMatrix_np, 2)
+    denseMatrix_l = r_denseMatrix_np.tolist()
+    return denseMatrix_l
+
 def convert_dpt2cm(value_dpt):
     return convert_m2cm(1/value_dpt)
 
