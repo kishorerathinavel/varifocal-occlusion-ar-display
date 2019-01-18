@@ -2,7 +2,11 @@ import common_functions as cf
 import numpy as np
 from numpy import linalg as LA
 
-class optical_design(): # Short for Implemented Optical Design
+'''
+Refer to abcd.svg for the diagram of the optical designs modelled here
+'''
+
+class optical_design(): 
     def __init__(self):
         self.d_f1_LCoS = 4.0 # Minimum possible
         self.d_LCoS_f2 = 4.0 # Minimum possible
@@ -30,16 +34,16 @@ class optical_design(): # Short for Implemented Optical Design
     def propagate_rw_all(self, ncurr_dist):
         self.O1 = ncurr_dist
         self.I1 = cf.calculate_image_distance(self.O1, self.f1)
-        self.m1 = self.I1/self.O1
+        self.m1 = -self.I1/self.O1
         self.O2 = self.d_f1_f2 - self.I1
         self.I2 = cf.calculate_image_distance(self.O2, self.f2)
-        self.m2 = self.I2/self.O2
+        self.m2 = -self.I2/self.O2
         self.O3 = self.d_f2_f3 - self.I2
         self.I3 = cf.calculate_image_distance(self.O3, self.f3)
-        self.m3 = self.I3/self.O3
+        self.m3 = -self.I3/self.O3
         self.O4 = self.d_f3_f4 - self.I3
         self.I4 = cf.calculate_image_distance(self.O4, self.f4)
-        self.m4 = self.I4/self.O4
+        self.m4 = -self.I4/self.O4
         self.rw_magnification = self.m1*self.m2*self.m3*self.m4
         self.d_WI_f4 = self.I4
         self.d_WI_f1 = self.d_WI_f4 + self.d_f1_f2 + self.d_f2_f3 + self.d_f3_f4
@@ -54,10 +58,10 @@ class optical_design(): # Short for Implemented Optical Design
         self.d_OM_f4 = self.I4
 
     def calc_ABCD_matrices(self):
-        self.M1 = cf.makeLensMatrix(1/self.f1)
-        self.M2 = cf.makeLensMatrix(1/self.f2)
-        self.M3 = cf.makeLensMatrix(1/self.f3)
-        self.M4 = cf.makeLensMatrix(1/self.f4)
+        self.M1 = cf.makeLensMatrix(self.f1)
+        self.M2 = cf.makeLensMatrix(self.f2)
+        self.M3 = cf.makeLensMatrix(self.f3)
+        self.M4 = cf.makeLensMatrix(self.f4)
         self.S12 = cf.makeFreeSpacePropagationMatrix(self.d_f1_f2)
         self.S23 = cf.makeFreeSpacePropagationMatrix(self.d_f2_f3)
         self.S34 = cf.makeFreeSpacePropagationMatrix(self.d_f3_f4)

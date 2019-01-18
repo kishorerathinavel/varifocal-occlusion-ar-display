@@ -54,7 +54,7 @@ def convert_cm2dpt(value_cm):
     return 1/(convert_cm2m(value_cm))
 
 def makeLensMatrix(f):
-    mat = Matrix([[1,0],[-f,1]])
+    mat = Matrix([[1,0],[-1/f,1]])
     return(mat)
 
 def makeFreeSpacePropagationMatrix(d):
