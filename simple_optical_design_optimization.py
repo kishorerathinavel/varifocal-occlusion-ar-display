@@ -3,7 +3,7 @@ from scipy.optimize import minimize
 from scipy.optimize import differential_evolution
 from scipy.optimize import basinhopping
 # from scipy.optimize import shgo # Need scipy=1.2.0 for this
-from scipy.optimize import dual_annealing
+# from scipy.optimize import dual_annealing # Need scipy=1.2.0 for this
 from scipy.optimize import Bounds
 from scipy.optimize import LinearConstraint
 from scipy.optimize import NonlinearConstraint
