@@ -61,7 +61,7 @@ def makeFreeSpacePropagationMatrix(d):
     mat = Matrix([[1,d], [0,1]])
     return mat
 
-def print_matrix(mat, tex):
+def print_matrix(mat, tex='True'):
     print(tex)
     if(tex == 'True'):
         print(latex(mat[0,0], order = 'ilex'))

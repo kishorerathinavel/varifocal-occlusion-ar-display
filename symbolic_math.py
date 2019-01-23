@@ -49,11 +49,11 @@ def main():
     
     sym_f1 = Symbol('F_1^{(t)}')
     M1 = makeLensMatrix(sym_f1)
-    sym_f2 = Symbol('F_2^{(t)}')
+    sym_f2 = Symbol('F_2')
     M2 = makeLensMatrix(sym_f2)
-    sym_f3 = Symbol('F_2^{(t)}')
+    sym_f3 = Symbol('F_2')
     M3 = makeLensMatrix(sym_f3)
-    sym_f4 = Symbol('F_1^{(t)}')
+    sym_f4 = Symbol('F_4^{(t)}')
     M4 = makeLensMatrix(sym_f4)
 
     sym_d12 = Symbol('d_{12}')
@@ -63,14 +63,13 @@ def main():
     sym_d34 = Symbol('d_{12}')
     S34 = makeFreeSpacePropagationMatrix(sym_d34)
 
-    II = M4*S34*M3*S23*M2*S12*M1
-    print_matrix(II)
+    TA = M4*S34*M3*S23*M2*S12*M1
+    print_matrix(TA)
 
     II = Matrix([[1,0], [0,1]])
-    I1 = M4*S34*M3*S23
-    I2 = S12*M1
-    M2 = I1.inv()*II*I2.inv()
-    print_matrix(M2)
+    I1 = S34*M3*S23*M2*S12*M1
+    M4 = II*I1.inv()
+    print_matrix(M4)
 
 if __name__ == '__main__':
     main()
