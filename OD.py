@@ -8,6 +8,7 @@ Refer to abcd.svg for the diagram of the optical designs modelled here
 
 class optical_design(): 
     def __init__(self):
+        self.d_f0_f1 = 4.0
         self.d_f1_LCoS = 4.0 # Minimum possible
         self.d_LCoS_f2 = 4.0 # Minimum possible
         self.d_f1_f2 = self.d_f1_LCoS + self.d_LCoS_f2
@@ -18,6 +19,7 @@ class optical_design():
         self.include_all = False
 
         # Uninitialized
+        self.f0 = 10
         self.f1 = 0.0
         self.f2 = 0.0
         self.f3 = 0.0
@@ -34,6 +36,14 @@ class optical_design():
         self.d_W_f1 = self.d_W_eye - self.d_f4_eye - self.d_f3_f4 - self.d_f2_f3 - self.d_f1_f2
 
     def populate_focal_lengths(self, f):
+        self.f1 = f[0]
+        self.f2 = f[1]
+        if(self.num_lenses > 2 or self.include_all == True):
+            self.f3 = f[2]
+        if(self.num_lenses > 3 or self.include_all == True):
+            self.f4 = f[3]
+
+    def old_populate_focal_lengths(self, f):
         common_f2_f3 = 3.43
         if(self.num_lenses == 2):
             self.f1 = f[0]
