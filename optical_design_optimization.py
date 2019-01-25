@@ -7,6 +7,7 @@ from scipy.optimize import NonlinearConstraint
 from scipy.optimize import SR1
 import common_functions as cf
 import OD
+from pprint import pprint
 
 '''
 Need to minimize:
@@ -78,7 +79,7 @@ def using_differential_evolution():
     '''
     myBounds = []
     if(IOD.num_lenses == 2):
-        # myBounds = [(2.0, 4.0), (0.0, 800.0)]
+        myBounds = [(2.0, 4.0), (0.0, 800.0)]
         # myBounds = [(10.0, 20.0), (10.0, 20.0)] # Assuming EL-10-30-C
         # myBounds = [(5.0, 12.0), (5.0, 12.0)] # Assuming EL-10-30-TC
     elif(IOD.num_lenses == 3):
@@ -87,12 +88,15 @@ def using_differential_evolution():
         myBounds = [(0.0, 4.0), (0.0, 10.0), (0.0, 10.0), (-50.0, 50.0)]
     energy_function_args = [IOD]
 
+    pprint(vars(IOD))
+
     print('     OM      RW        f1      f2      f3      f4       ~RW    ~MAG     ~OM    ~RW0')
     if(show_fl_in_diopters == True):
         print('   (cm)    (cm)     (dpt)   (dpt)   (dpt)   (dpt)')
     else:
         print('   (cm)    (cm)      (cm)    (cm)    (cm)    (cm)')
     # print('1000.00 1000.00 |    3.98    4.00    4.00    4.02 |   -0.00    0.00   -0.00   -0.00')
+
     for vip_dist in dists_l:
         IOD.d_vip_eye = vip_dist
 
