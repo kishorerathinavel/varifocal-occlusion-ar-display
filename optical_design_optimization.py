@@ -60,7 +60,7 @@ def energy_function(f, IOD):
 def using_differential_evolution():
     global common_f2_f3
 
-    show_fl_in_diopters = False
+    show_fl_in_diopters = True
 
     IOD = OD.optical_design()
     IOD.num_lenses = 2
@@ -71,9 +71,16 @@ def using_differential_evolution():
     IOD.d_f2_f3 = (2*IOD.d_f1_f2*common_f2_f3)/(IOD.d_f1_f2 - common_f2_f3)
     print('d_f2_f2: %7.2f' % (IOD.d_f2_f3))
 
+    '''  Focal power range for optotune lenses
+         |             | min(cm) | max(cm) | min(D) | max(D) | comments  |
+         | EL-10-30-TC |       5 |      12 |   8.33 |     20 | thinner   |
+         | EL-10-30-C  |      10 |      20 |      5 |     10 | wo offset |
+    '''
     myBounds = []
     if(IOD.num_lenses == 2):
-        myBounds = [(2.0, 4.0), (0.0, 800.0)]
+        # myBounds = [(2.0, 4.0), (0.0, 800.0)]
+        # myBounds = [(10.0, 20.0), (10.0, 20.0)] # Assuming EL-10-30-C
+        # myBounds = [(5.0, 12.0), (5.0, 12.0)] # Assuming EL-10-30-TC
     elif(IOD.num_lenses == 3):
         myBounds = [(0.0, 4.0), (0.0, 5.0), (-50.0, 800.0)]
     elif(IOD.num_lenses == 4):
@@ -81,6 +88,10 @@ def using_differential_evolution():
     energy_function_args = [IOD]
 
     print('     OM      RW        f1      f2      f3      f4       ~RW    ~MAG     ~OM    ~RW0')
+    if(show_fl_in_diopters == True):
+        print('   (cm)    (cm)     (dpt)   (dpt)   (dpt)   (dpt)')
+    else:
+        print('   (cm)    (cm)      (cm)    (cm)    (cm)    (cm)')
     # print('1000.00 1000.00 |    3.98    4.00    4.00    4.02 |   -0.00    0.00   -0.00   -0.00')
     for vip_dist in dists_l:
         IOD.d_vip_eye = vip_dist
@@ -114,24 +125,5 @@ def using_differential_evolution():
             else:
                 print('%7.2f %7.2f | %7.2f %7.2f %7.2f %7.2f | %7.2f %7.2f %7.2f %7.2f'% (vip_dist, rw_dist, IOD.f1, IOD.f2, IOD.f3, IOD.f4, curr_err_dist, curr_err_mag, curr_err_om, curr_err_infocus_rw))
 
-def optotune_focal_length_ranges():
-    TC_bounds = [5, 12]
-    C_bounds = [10, 20]
-    TC_bounds_diopters = [cf.convert_cm2dpt(elem) for elem in TC_bounds]
-    C_bounds_diopters = [cf.convert_cm2dpt(elem) for elem in C_bounds]
-    print(TC_bounds)
-    print(TC_bounds_diopters)
-    print(C_bounds)
-    print(C_bounds_diopters)
-
-    offset_lens = -15
-    nC_bounds = [cf.convert_dpt2cm(cf.convert_cm2dpt(offset_lens) + cf.convert_cm2dpt(elem)) for elem in C_bounds]
-    print(nC_bounds)
-
-    res_bounds = [-66.6, 28.6]
-    nC_bounds = [cf.convert_dpt2cm(cf.convert_cm2dpt(elem) - cf.convert_cm2dpt(offset_lens)) for elem in C_bounds]
-    print(nC_bounds)
-
 if __name__ == '__main__':
-    # using_differential_evolution()
-    optotune_focal_length_ranges()
+    using_differential_evolution()
