@@ -114,5 +114,24 @@ def using_differential_evolution():
             else:
                 print('%7.2f %7.2f | %7.2f %7.2f %7.2f %7.2f | %7.2f %7.2f %7.2f %7.2f'% (vip_dist, rw_dist, IOD.f1, IOD.f2, IOD.f3, IOD.f4, curr_err_dist, curr_err_mag, curr_err_om, curr_err_infocus_rw))
 
+def optotune_focal_length_ranges():
+    TC_bounds = [5, 12]
+    C_bounds = [10, 20]
+    TC_bounds_diopters = [cf.convert_cm2dpt(elem) for elem in TC_bounds]
+    C_bounds_diopters = [cf.convert_cm2dpt(elem) for elem in C_bounds]
+    print(TC_bounds)
+    print(TC_bounds_diopters)
+    print(C_bounds)
+    print(C_bounds_diopters)
+
+    offset_lens = -15
+    nC_bounds = [cf.convert_dpt2cm(cf.convert_cm2dpt(offset_lens) + cf.convert_cm2dpt(elem)) for elem in C_bounds]
+    print(nC_bounds)
+
+    res_bounds = [-66.6, 28.6]
+    nC_bounds = [cf.convert_dpt2cm(cf.convert_cm2dpt(elem) - cf.convert_cm2dpt(offset_lens)) for elem in C_bounds]
+    print(nC_bounds)
+
 if __name__ == '__main__':
-    using_differential_evolution()
+    # using_differential_evolution()
+    optotune_focal_length_ranges()
