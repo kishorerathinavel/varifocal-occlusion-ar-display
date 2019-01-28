@@ -9,7 +9,6 @@ import common_functions as cf
 import OD
 from pprint import pprint
 
-
 '''
 Need to minimize:
 1. Error in magnification of real world objects
