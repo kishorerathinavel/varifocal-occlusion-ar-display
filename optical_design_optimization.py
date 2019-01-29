@@ -23,15 +23,18 @@ norm of the vector of errors mentioned above
 '''
 
 ''' Propagate using Lensmaker's equations '''
+
+
+dists_l = [1000.0, 250.0, 64.0, 20.0]
+
 def energy_function(f, IOD): 
-    rw_dists_l = [1000.0, 250.0, 64.0, 16.0]
 
     IOD.populate_focal_lengths(f)
     
     # Error associated with distance and magnitude of a bunch of real world distances
     err_mag_l = []
     err_dist_l = []
-    for rw_dist in rw_dists_l:
+    for rw_dist in dists_l:
         IOD.propagate_rw_all(rw_dist)
         curr_err_dist = cf.convert_cm2dpt(rw_dist) + cf.convert_cm2dpt(IOD.lens_l[-1].d_image)
         curr_err_mag = IOD.magnification - 1.0
@@ -52,6 +55,12 @@ def energy_function(f, IOD):
 
 def initialize_IOD(IOD):
     common_f2_f3 = 3.5
+    half_width_35mm_lens = 2.65
+    # half_width_35mm_lens = 1.00
+    d_f1_f2 = 2*IOD.min_d_f_LCoS + half_width_35mm_lens
+    # d_f3_f4 = d_f1_F2 # Has to be symmetrical
+    d_f3_f4 = 2*IOD.min_d_f_LCoS + half_width_35mm_lens
+    d_f2_f3 = (2*d_f3_f4*common_f2_f3)/(d_f3_f4 - common_f2_f3)
 
     # Lens 1
     curr_lens = OD.lens()
@@ -63,15 +72,13 @@ def initialize_IOD(IOD):
     # Lens 2
     curr_lens = OD.lens()
     curr_lens.focal_length = common_f2_f3
-    curr_lens.d_prev_lens = 2*IOD.min_d_f_LCoS
+    curr_lens.d_prev_lens = d_f1_f2
     curr_lens.tunable = False
     IOD.lens_l.append(curr_lens)
 
     # Lens 3
     curr_lens = OD.lens()
     curr_lens.focal_length = common_f2_f3
-    d_f2_f3 = (2*IOD.lens_l[1].d_prev_lens*common_f2_f3)/(IOD.lens_l[1].d_prev_lens - common_f2_f3)
-    print('d_f2_f2: %7.2f' % (d_f2_f3))
     curr_lens.d_prev_lens = d_f2_f3
     curr_lens.tunable = False
     IOD.lens_l.append(curr_lens)
@@ -79,33 +86,38 @@ def initialize_IOD(IOD):
     # Lens 4
     curr_lens = OD.lens()
     curr_lens.focal_length = -1
-    curr_lens.d_prev_lens = 2*IOD.min_d_f_LCoS
+    curr_lens.d_prev_lens = d_f3_f4
     curr_lens.tunable = True
     IOD.lens_l.append(curr_lens)
 
-    IOD.num_lenses = len(IOD.lens_l)
-    IOD.num_lenses_om = IOD.num_lenses - 1
+    
+    IOD.num_lenses = 4
+    IOD.num_lenses_om = 3
+    IOD.num_tunable_lenses = 0
+    for curr_lens in IOD.lens_l:
+        if(curr_lens.tunable == True):
+            IOD.num_tunable_lenses = IOD.num_tunable_lenses + 1
+            
 
 def using_differential_evolution():
     show_fl_in_diopters = True
     IOD = OD.optical_design()
     initialize_IOD(IOD)
 
-    dists_l = [1000.0, 250.0, 64.0, 16.0]
 
     '''  Focal power range for optotune lenses
          |             | min(cm) | max(cm) | min(D) | max(D) | comments  |
          | EL-10-30-TC |       5 |      12 |   8.33 |     20 | thinner   |
          | EL-10-30-C  |      10 |      20 |      5 |     10 | wo offset |
     '''
-    myBounds = []
-    if(IOD.num_lenses == 2):
-        myBounds = [(2.0, 4.0), (0.0, 800.0)]
+    # myBounds = []
+    if(IOD.num_tunable_lenses == 2):
+        myBounds = [(2.0, 4.0), (0.0, 90.0)]
         # myBounds = [(10.0, 20.0), (10.0, 20.0)] # Assuming EL-10-30-C
         # myBounds = [(5.0, 12.0), (5.0, 12.0)] # Assuming EL-10-30-TC
-    elif(IOD.num_lenses == 3):
+    elif(IOD.num_tunable_lenses == 3):
         myBounds = [(0.0, 4.0), (0.0, 5.0), (-50.0, 800.0)]
-    elif(IOD.num_lenses == 4):
+    elif(IOD.num_tunable_lenses == 4):
         myBounds = [(0.0, 4.0), (0.0, 10.0), (0.0, 10.0), (-50.0, 50.0)]
     energy_function_args = [IOD]
 
@@ -120,6 +132,8 @@ def using_differential_evolution():
         print('   (cm)    (cm)      (cm)    (cm)    (cm)    (cm)')
     # print('1000.00 1000.00 |    3.98    4.00    4.00    4.02 |   -0.00    0.00   -0.00   -0.00')
 
+    f1_l = []
+    f4_l = []
     for vip_dist in dists_l:
         IOD.d_vip_eye = vip_dist
 
@@ -127,7 +141,7 @@ def using_differential_evolution():
         res = curr_res
         min_energy = curr_res.fun
 
-        for trials in range(0, 30):
+        for trials in range(0, 10):
             curr_res = differential_evolution(energy_function, bounds=myBounds, args=energy_function_args)
             if(curr_res.fun < min_energy):
                 min_energy = curr_res.fun
@@ -147,10 +161,22 @@ def using_differential_evolution():
             f2 = IOD.lens_l[1].focal_length
             f3 = IOD.lens_l[2].focal_length
             f4 = IOD.lens_l[3].focal_length
+            f1_l.append(cf.convert_cm2dpt(f1))
+            f4_l.append(cf.convert_cm2dpt(f4))
             if(show_fl_in_diopters == True):
                 print('%7.2f %7.2f | %7.2f %7.2f %7.2f %7.2f | %7.2f %7.2f %7.2f %7.2f'% (vip_dist, rw_dist, cf.convert_cm2dpt(f1), cf.convert_cm2dpt(f2), cf.convert_cm2dpt(f3), cf.convert_cm2dpt(f4), curr_err_dist, curr_err_mag, curr_err_om, curr_err_infocus_rw))
             else:
                 print('%7.2f %7.2f | %7.2f %7.2f %7.2f %7.2f | %7.2f %7.2f %7.2f %7.2f'% (vip_dist, rw_dist, f1, f2, f3, f4, curr_err_dist, curr_err_mag, curr_err_om, curr_err_infocus_rw))
+
+    print(np.mean(f1_l))
+    print(np.mean(f1_l) - 7.5)
+    print(max(f1_l) - min(f1_l))
+
+    print(np.mean(f4_l))
+    print(np.mean(f4_l) - 7.5)
+    print(max(f4_l) - min(f4_l))
+
+    print(IOD.lens_l[2].d_prev_lens)
 
 if __name__ == '__main__':
     using_differential_evolution()

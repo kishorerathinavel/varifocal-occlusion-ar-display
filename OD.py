@@ -37,15 +37,21 @@ class optical_design():
 
     def propagate_rw_all(self, curr_dist):
         self.magnification = 1.0
+        last_image_distance = -curr_dist
         for lens in self.lens_l:
+            lens.d_object = lens.d_prev_lens - last_image_distance
             lens.d_image = cf.calculate_image_distance(lens.d_object, lens.focal_length)
+            last_image_distance = lens.d_image
             lens.magnification = -lens.d_image/lens.d_object
             self.magnification = self.magnification * lens.magnification
 
     def propagate_om(self):
         self.magnification = 1.0
+        last_image_distance = self.min_d_f_LCoS
         for lens in self.lens_l[self.num_lenses - self.num_lenses_om:]:
+            lens.d_object = lens.d_prev_lens - last_image_distance
             lens.d_image = cf.calculate_image_distance(lens.d_object, lens.focal_length)
+            last_image_distance = lens.d_image
             lens.magnification = -lens.d_image/lens.d_object
             self.magnification = self.magnification * lens.magnification
 
