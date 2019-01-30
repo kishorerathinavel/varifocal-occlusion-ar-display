@@ -14,6 +14,8 @@
    | f3     | AHAB0837       | 1.9.1674 (133899-00-A) |
    | unused | AHAB0833       | 1.9.2065 (133899-00-F) |
 * Tasks
++ Note down the idea of having an index for your journal where you have keywords, questions,
+  etc. and you have dates next to them to indicate where the content is.
 + Find a paper to present to group
 + 2019.01.28 onwards
   + Optimization:
