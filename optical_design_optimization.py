@@ -36,7 +36,7 @@ def energy_function(f, IOD):
     err_dist_l = []
     for rw_dist in dists_l:
         IOD.propagate_rw_all(rw_dist)
-        curr_err_dist = cf.convert_cm2dpt(rw_dist) + cf.convert_cm2dpt(IOD.lens_l[-1].d_image)
+        curr_err_dist = cf.convert_cm2dpt(rw_dist + IOD.length) + cf.convert_cm2dpt(IOD.lens_l[-1].d_image)
         curr_err_mag = IOD.magnification - 1.0
         err_dist_l.append(curr_err_dist)
         err_mag_l.append(curr_err_mag)
@@ -47,7 +47,7 @@ def energy_function(f, IOD):
 
     # Error associated with distance at which the occlusion mask is seen
     IOD.propagate_om()
-    curr_err_om = cf.convert_cm2dpt(IOD.lens_l[-1].d_image) + cf.convert_cm2dpt(IOD.d_vip_eye)
+    curr_err_om = cf.convert_cm2dpt(IOD.lens_l[-1].d_image) + cf.convert_cm2dpt(IOD.d_vip_eye + IOD.length)
     energy_om = curr_err_om**2
 
     combined_energy = energy_dist + energy_mag + 100*energy_om
@@ -77,14 +77,14 @@ def initialize_IOD(IOD):
     curr_lens = OD.lens()
     curr_lens.focal_length = common_f2_f3
     curr_lens.d_prev_lens = d_f1_f2
-    curr_lens.tunable = False
+    curr_lens.tunable = True
     IOD.lens_l.append(curr_lens)
 
     # Lens 3
     curr_lens = OD.lens()
     curr_lens.focal_length = common_f2_f3
     curr_lens.d_prev_lens = d_f2_f3
-    curr_lens.tunable = False
+    curr_lens.tunable = True
     IOD.lens_l.append(curr_lens)
 
     # Lens 4
@@ -94,20 +94,20 @@ def initialize_IOD(IOD):
     curr_lens.tunable = True
     IOD.lens_l.append(curr_lens)
 
-    
+    IOD.length = 0
     IOD.num_lenses = 4
     IOD.num_lenses_om = 3
     IOD.num_tunable_lenses = 0
     for curr_lens in IOD.lens_l:
+        IOD.length = IOD.length + curr_lens.d_prev_lens
         if(curr_lens.tunable == True):
             IOD.num_tunable_lenses = IOD.num_tunable_lenses + 1
             
 
 def using_differential_evolution():
-    show_fl_in_diopters = False
+    show_fl_in_diopters = True
     IOD = OD.optical_design()
     initialize_IOD(IOD)
-
 
     '''  Focal power range for optotune lenses
          |             | min(cm) | max(cm) | min(D) | max(D) | comments  |
@@ -156,17 +156,17 @@ def using_differential_evolution():
         for rw_dist in dists_l:
             IOD.propagate_rw_all(rw_dist)
             if(show_fl_in_diopters):
-                curr_err_dist = cf.convert_cm2dpt(rw_dist) + cf.convert_cm2dpt(IOD.lens_l[-1].d_image)
+                curr_err_dist = cf.convert_cm2dpt(rw_dist + IOD.length) + cf.convert_cm2dpt(IOD.lens_l[-1].d_image)
             else:
-                curr_err_dist = rw_dist + IOD.lens_l[-1].d_image
+                curr_err_dist = rw_dist + IOD.length + IOD.lens_l[-1].d_image
 
             curr_err_mag = IOD.magnification - 1.0
             
             IOD.propagate_om()
             if(show_fl_in_diopters):
-                curr_err_om = cf.convert_cm2dpt(IOD.lens_l[-1].d_image) + cf.convert_cm2dpt(IOD.d_vip_eye)
+                curr_err_om = cf.convert_cm2dpt(IOD.lens_l[-1].d_image) + cf.convert_cm2dpt(IOD.d_vip_eye + IOD.length)
             else:
-                curr_err_om = IOD.lens_l[-1].d_image + IOD.d_vip_eye
+                curr_err_om = IOD.lens_l[-1].d_image + IOD.d_vip_eye + IOD.length
 
             f1 = IOD.lens_l[0].focal_length
             f2 = IOD.lens_l[1].focal_length
@@ -180,15 +180,13 @@ def using_differential_evolution():
             f1_l.append(cf.convert_cm2dpt(f1))
             f4_l.append(cf.convert_cm2dpt(f4))
 
-    print(np.mean(f1_l))
-    print(np.mean(f1_l) - 7.5)
-    print(max(f1_l) - min(f1_l))
+    
+    print('Mean of f1: %f' % (np.mean(f1_l)))
+    print('Offset lens for f1: %f Diopters' % (np.mean(f1_l) - 7.5))
 
-    print(np.mean(f4_l))
-    print(np.mean(f4_l) - 7.5)
-    print(max(f4_l) - min(f4_l))
+    print('Mean of f4:' % (np.mean(f4_l)))
+    print('Offset lens for f4: %f Diopters' % (np.mean(f4_l) - 7.5))
 
-    print(IOD.lens_l[2].d_prev_lens)
 
 if __name__ == '__main__':
     using_differential_evolution()
