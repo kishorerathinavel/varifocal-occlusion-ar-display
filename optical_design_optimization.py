@@ -24,8 +24,7 @@ norm of the vector of errors mentioned above
 
 ''' Propagate using Lensmaker's equations '''
 
-
-dists_l = [1000.0, 250.0, 64.0, 17.0]
+dists_l = [1000.0, 250.0, 64.0, 32.0]
 
 def energy_function(f, IOD): 
 
@@ -54,17 +53,18 @@ def energy_function(f, IOD):
     return combined_energy
 
 def initialize_IOD(IOD):
-    common_f2_f3 = 3.5
-    half_width_35mm_lens = 1.75
+    common_f2_f3 = 5.0
+    half_width_35mm_lens = 1.00
     # half_width_35mm_lens = 1.00
     d_f1_f2 = 2*IOD.min_d_f_LCoS + half_width_35mm_lens
     # d_f3_f4 = d_f1_F2 # Has to be symmetrical
-    d_f3_f4 = 2*IOD.min_d_f_LCoS + half_width_35mm_lens
+    d_f3_f4 = IOD.min_d_f_LCoS + half_width_35mm_lens
     d_f2_f3 = (2*d_f1_f2*common_f2_f3)/(d_f1_f2 - common_f2_f3)
-    min_d_f2_f3 = 10.7 - 2*half_width_35mm_lens
-    if(d_f2_f3 < min_d_f2_f3):
-        print('d_f2_f3 can not be smaller than %f' %(min_d_f2_f3))
-        d_f2_f3 = min_d_f2_f3
+    # min_d_f2_f3 = 10.7 - 2*half_width_35mm_lens
+    # if(d_f2_f3 < min_d_f2_f3):
+    #     print('d_f2_f3 can not be smaller than %f' %(min_d_f2_f3))
+    #     d_f2_f3 = min_d_f2_f3
+    # d_f2_f3 = 7.0
 
     # Lens 1
     curr_lens = OD.lens()
@@ -99,7 +99,7 @@ def initialize_IOD(IOD):
     IOD.num_lenses_om = 3
     IOD.num_tunable_lenses = 0
     for curr_lens in IOD.lens_l:
-        IOD.length = IOD.length + curr_lens.d_prev_lens
+        # IOD.length = IOD.length + curr_lens.d_prev_lens
         if(curr_lens.tunable == True):
             IOD.num_tunable_lenses = IOD.num_tunable_lenses + 1
             
@@ -160,6 +160,11 @@ def using_differential_evolution():
             else:
                 curr_err_dist = rw_dist + IOD.length + IOD.lens_l[-1].d_image
 
+            print('%7.7f %7.7f %7.7f %7.7f' %(IOD.lens_l[0].magnification, IOD.lens_l[1].magnification, IOD.lens_l[2].magnification, IOD.lens_l[3].magnification))
+            print('%7.7f %7.7f %7.7f %7.7f' %(IOD.lens_l[0].magnification,
+                                              IOD.lens_l[0].magnification*IOD.lens_l[1].magnification,
+                                              IOD.lens_l[0].magnification*IOD.lens_l[1].magnification*IOD.lens_l[2].magnification,
+                                              IOD.lens_l[0].magnification*IOD.lens_l[1].magnification*IOD.lens_l[2].magnification*IOD.lens_l[3].magnification))
             curr_err_mag = IOD.magnification - 1.0
             
             IOD.propagate_om()
