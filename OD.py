@@ -1,6 +1,7 @@
 import common_functions as cf
 import numpy as np
 from numpy import linalg as LA
+from sympy import *
 
 '''
 Refer to abcd.svg for the diagram of the optical designs modelled here
