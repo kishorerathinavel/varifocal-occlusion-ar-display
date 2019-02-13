@@ -929,6 +929,134 @@ def howlett_1D():
         # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
     
 '''
+Using the new OD.py
+Modelling the optical system from
+Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
+'''
+def howlett_upgraded_OD():
+    IOD = OD.optical_design()
+    op = outputs()
+    # diop_diff = 0.6
+    # max_dist = cf.convert_m2cm(10)
+    # num_dist = 3
+    # dists_l = cf.calc_perceptually_useful_distances(max_dist, diop_diff, num_dist)
+    dists_l = [1000, 250, 64, 16]
+    num_dist = len(dists_l)
+
+    # Assume that num_solns = 2
+    # All output matrices have num_dist rows and num_soln columns
+    std_output_arr = np.zeros(num_dist)
+    op.mag_arr = np.copy(std_output_arr)
+    op.img_dist = np.copy(std_output_arr)
+
+    ylabels_l = ["mag_arr", "img_dist"]
+    ylim_l = [[-1.5, 1.5], [-1, -1]]
+
+    common_f = 4
+    howlett_d = 8 
+    howlett_t = howlett_d + 4*common_f
+    # howlett_t = 4*IOD.f1
+
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f
+    curr_lens.d_prev_lens = 0.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+    
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f 
+    curr_lens.d_prev_lens = howlett_d
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f
+    curr_lens.d_prev_lens = 0.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f
+    curr_lens.d_prev_lens = howlett_d
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+
+
+    d_f2_f3_l = [25, 27, howlett_t, 29, 31]
+    num_d_f2_f3 = len(d_f2_f3_l)
+    # d_f2_f3_l = list(range(3, 28, 5))
+    # d_f2_f3_l.append(howlett_t)
+    for curr_t in d_f2_f3_l:
+        str = "d_f2_f3 = %0.2f" % (curr_t)
+        print(str)
+
+        IOD.lens_l[2].d_prev_lens = curr_t
+        IOD.calc_ABCD_matrices()
+        IOD.calc_TA()
+
+        IOD.length = 8
+        # for curr_lens in IOD.lens_l:
+        #     IOD.length = IOD.length + curr_lens.d_prev_lens
+
+        S14 = cf.makeFreeSpacePropagationMatrix(howlett_d)
+        IOD.TT = S14
+
+        IOD.calc_TA_diff_TT()
+        IOD.calc_OO_norm()
+        print(IOD.TT)
+        print(IOD.TA)
+        print(IOD.OO)
+        print('Norm: %7.2f' %(IOD.norm))
+
+        # OO = IOD.OO
+        # OO_l = OO.tolist()
+        # flat_OO_l = []
+        # cf.conv_lol_flat_l(OO_l, flat_OO_l)
+
+        str = "Magnification at all distances:"
+        custom_prnt(str)
+        diff_l = []
+        mag_l = []
+        for dist in dists_l:
+            # str = "    dist = %0.2f" % (dist)
+            # print(str)
+
+            # dist_index = dists_l.index(dist)
+
+            # # IOD.populate_d_eye(dist)
+            # IOD.d_vip_eye = dist
+            # IOD.d_W_f1 = IOD.d_vip_eye - IOD.d_f4_eye - howlett_d
+            # IOD.d_W_f4 = IOD.d_vip_eye - IOD.d_f4_eye
+
+            IOD.propagate_rw_all(dist) # Assume that dist = d_W_f1
+
+            diff_dist = IOD.lens_l[-1].d_image + IOD.length + dist
+            diff_l.append(diff_dist)
+
+            mag_l.append(IOD.magnification)
+
+
+        mag_arr = np.array(mag_l, dtype=np.float64)
+        diff_arr = np.array(diff_l, dtype=np.float64)
+
+        print('    vip_dist = inf | avg(mag): %0.2f | std(mag): %0.2f | avg(dif): %6.2f | std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr)))
+        # str = '        avg(mag): %0.2f  std(mag): %0.2f  avg(dif): %0.2f  std(dif): %0.2f' % (np.mean(mag_arr), np.std(mag_arr), np.mean(diff_arr), np.std(diff_arr))
+        # print(str)
+        print('\n')
+
+        for curr_lens in IOD.lens_l:
+            print(curr_lens.M)
+
+        for curr_lens in IOD.lens_l:
+            print(curr_lens.S)
+
+        print(IOD.TA)
+        print(IOD.OO)
+
+        # soln_l = []
+        # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+
+'''
 Modelling the optical system from
 Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
 '''
@@ -1080,9 +1208,9 @@ def main_all():
             IOD.d_vip_eye = curr_dist
     
 if __name__ == '__main__':
-    tunable_f1_f2_f3()
+    # tunable_f1_f2_f3()
     # tunable_f1_f2()
-    # howlett()
+    howlett_upgraded_OD()
     # howlett_1D()
     # tunable_all_symmetric()
 

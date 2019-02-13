@@ -28,6 +28,7 @@ class optical_design():
         self.num_lenses_om = 0
         self.d_vip_eye = 0.0
         self.magnification = 0.0
+        self.target_magnification = 0.0
 
     def populate_focal_lengths(self, f):
         counter = 0
@@ -64,7 +65,7 @@ class optical_design():
     def calc_TA(self):
         self.TA = Matrix([[1,0], [0,1]])
         for lens in self.lens_l:
-            self.TA = self.TA * lens.M * lens.S
+            self.TA = lens.M * lens.S * self.TA
 
     def prototype_v4_populate_dependent_focalLengths(self):
         self.f3 = self.f2
