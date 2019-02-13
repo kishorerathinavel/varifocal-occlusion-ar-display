@@ -91,7 +91,7 @@ def energy_function_custom(f, IOD):
 def initialize_IOD(IOD):
     IOD.target_magnification = 1.0
     common_f2_f3 = 3.5
-    half_width_35mm_lens = 1.00
+    half_width_35mm_lens = 2.00
     # half_width_35mm_lens = 1.00
     d_f1_f2 = 2*IOD.min_d_f_LCoS + half_width_35mm_lens
     # d_f3_f4 = d_f1_F2 # Has to be symmetrical
@@ -103,36 +103,45 @@ def initialize_IOD(IOD):
     #     d_f2_f3 = min_d_f2_f3
     # d_f2_f3 = 7.0
 
-    # Lens 1
+
+    curr_lens = OD.lens()
+    curr_lens.focal_length = cf.convert_dpt2cm(16.0)
+    curr_lens.d_prev_lens = 0.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+
     curr_lens = OD.lens()
     curr_lens.focal_length = -1
-    curr_lens.d_prev_lens = 0.0
+    curr_lens.d_prev_lens = 1.0
     curr_lens.tunable = True
     IOD.lens_l.append(curr_lens)
     
-    # Lens 2
     curr_lens = OD.lens()
     curr_lens.focal_length = common_f2_f3
     curr_lens.d_prev_lens = d_f1_f2
     curr_lens.tunable = False
     IOD.lens_l.append(curr_lens)
 
-    # Lens 3
     curr_lens = OD.lens()
     curr_lens.focal_length = common_f2_f3
     curr_lens.d_prev_lens = d_f2_f3
     curr_lens.tunable = False
     IOD.lens_l.append(curr_lens)
 
-    # Lens 4
     curr_lens = OD.lens()
     curr_lens.focal_length = -1
     curr_lens.d_prev_lens = d_f3_f4
     curr_lens.tunable = True
     IOD.lens_l.append(curr_lens)
 
+    curr_lens = OD.lens()
+    curr_lens.focal_length = cf.convert_dpt2cm(-2.5)
+    curr_lens.d_prev_lens = 1.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+
     IOD.length = 0
-    IOD.num_lenses = 4
+    IOD.num_lenses = 5
     IOD.num_lenses_om = 3
     IOD.num_tunable_lenses = 0
     for curr_lens in IOD.lens_l:
@@ -179,7 +188,8 @@ def using_differential_evolution():
     '''
     # myBounds = []
     if(IOD.num_tunable_lenses == 2):
-        myBounds = [(2.0, 4.0), (-10.0, 90.0)]
+        # myBounds = [(cf.convert_dpt2cm(10.0), cf.convert_dpt2cm(5.0)), (cf.convert_dpt2cm(10.0), cf.convert_dpt2cm(5.0))]
+        myBounds = [(-90.0, 90.0), (-90.0, 90.0)]
         # myBounds = [(10.0, 20.0), (10.0, 20.0)] # Assuming EL-10-30-C
         # myBounds = [(5.0, 12.0), (5.0, 12.0)] # Assuming EL-10-30-TC
     elif(IOD.num_tunable_lenses == 3):
@@ -271,7 +281,7 @@ def using_differential_evolution():
             #                                   IOD.lens_l[0].magnification*IOD.lens_l[1].magnification,
             #                                   IOD.lens_l[0].magnification*IOD.lens_l[1].magnification*IOD.lens_l[2].magnification,
             #                                   IOD.lens_l[0].magnification*IOD.lens_l[1].magnification*IOD.lens_l[2].magnification*IOD.lens_l[3].magnification))
-            curr_err_mag = IOD.magnification - IOD.target_magnification
+            curr_err_mag = IOD.magnification
             
             IOD.propagate_om()
             curr_err_om = calc_err_om(IOD)
@@ -291,11 +301,11 @@ def using_differential_evolution():
 
 
             if(show_fl_in_diopters == True):
-                f1_l.append(cf.convert_cm2dpt(IOD.lens_l[0].focal_length))
-                f4_l.append(cf.convert_cm2dpt(IOD.lens_l[-1].focal_length))
+                f1_l.append(cf.convert_cm2dpt(IOD.lens_l[1].focal_length))
+                f4_l.append(cf.convert_cm2dpt(IOD.lens_l[-2].focal_length))
             else:
-                f1_l.append(IOD.lens_l[0].focal_length)
-                f4_l.append(IOD.lens_l[-1].focal_length)
+                f1_l.append(IOD.lens_l[1].focal_length)
+                f4_l.append(IOD.lens_l[-2].focal_length)
                 
 
         IOD.calc_ABCD_matrices()
@@ -304,7 +314,7 @@ def using_differential_evolution():
         IOD.TT = II
         IOD.calc_TA_diff_TT()
         IOD.calc_OO_norm()
-        print(IOD.TT)
+        # print(IOD.TT)
         print(IOD.TA)
         print(IOD.OO)
         print('Norm: %7.2f' %(IOD.norm))
