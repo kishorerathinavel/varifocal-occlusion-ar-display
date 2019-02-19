@@ -6,22 +6,36 @@ from PyQt5.QtWidgets import (QApplication, QGridLayout, QGroupBox,
 from lens import Lens
 import sys
 import time
+import winsound
 
 
 # f1_l = [5.10, 5.40, 6.56, 8.12]
 # f4_l = [11.26, 10.96, 9.80, 8.24]
 
-f1_l = [5.40, 6.56]
-f4_l = [10.96, 9.80]
+#f1_orig = [5.00, 7.39]
+f1_orig = [7.00, 20.00]
+f4_orig = [8.00, 6.00]
+
+f1_l = f1_orig.copy()
+f4_l = f4_orig.copy()
+
+offset = 0.0
+beep_frequency = 2500
+beep_duration = 100
 
 # f1_l = [5.10, 8.12]
 # f4_l = [11.26, 8.24]
 
 index = 1
 
-lens1 = Lens('COM6', debug=False)
-lens4 = Lens('COM7', debug=False)
+lens1 = Lens('COM9', debug=False)
+lens4 = Lens('COM8', debug=False)
 
+def calc_f4_l(offset):
+    global f4_l
+    f4_l = [f4_orig[0] + offset, f4_orig[1] - offset]
+    print(f4_l)
+    
 def connect_lenses():
     global lens1, lens2
 
@@ -43,29 +57,69 @@ def connect_lenses():
     print(lens4.set_temperature_limits(20,45))
     lens4.set_diopter(f4_l[index])
 
-def increment_lens(f1=True, f2=True):
-    global index, lens1, lens2
+def update_lens(f1=True,f2=True):
+    global lens1, lens2
+    str = ''
+    if(f1 == True):
+        lens1.set_diopter(f1_l[index])
+        str = '%s L1[%d]:%0.2f' %(str, index, f1_l[index])
+    if(f2 == True):
+        lens4.set_diopter(f4_l[index])
+        str = '%s L4[%d]:%0.2f' %(str, index, f4_l[index])
+    print('%s' % (str))
     
+def increment_index(f1=True, f2=True):
+    global index
     index = index + 1
     if(index > len(f1_l) - 1):
         index = len(f1_l) - 1
-    if(f1 == True): 
-        lens1.set_diopter(f1_l[index])
-    if(f2 == True):
-        lens4.set_diopter(f4_l[index])
-
-def decrement_lens(f1=True, f2=True):
-    global index, lens1, lens2
+    update_lens(f1,f2)
     
+def decrement_index(f1=True, f2=True):
+    global index
     index = index - 1
     if(index < 0):
         index = 0
-        
-    if(f1 == True): 
-        lens1.set_diopter(f1_l[index])
-    if(f2 == True):
-        lens4.set_diopter(f4_l[index])
+    update_lens(f1,f2)
+
+def set_f1_middle():
+    global f1_l, f4_l
+    f1_middle = (f1_l[0] + f1_l[1])/2.0
+    f1_l = [f1_middle, f1_middle]
+    f4_middle = (f4_l[0] + f4_l[1])/2.0
+    f4_l = [f4_middle, f4_middle]
+    update_lens(True, True)
+
+
+def reset_fl():
+    global f1_l, f4_l
+    f1_l = f1_orig.copy() 
+    f4_l = f4_orig.copy()
+    update_lens(True, True)
     
+def modify_current_fl(lens_num, delta):
+    global f1_l, f4_l
+    f1 = False
+    f4 = False
+    if(lens_num == 1):
+        f1_l[index] = f1_l[index] + delta
+        if(f1_l[index] > 20.0):
+            f1_l[index] = 20.0
+            winsound.Beep(beep_frequency, beep_duration)
+        if(f1_l[index] < 7.0):
+            f1_l[index] = 7.0
+            winsound.Beep(beep_frequency, beep_duration)
+        f1 = True
+    if(lens_num == 4):
+        f4_l[index] = f4_l[index] + delta
+        if(f4_l[index] > 11.0):
+            f4_l[index] = 11.0
+            winsound.Beep(beep_frequency, beep_duration)
+        if(f4_l[index] < 4.0):
+            f4_l[index] = 4.0
+            winsound.Beep(beep_frequency, beep_duration)
+        f4 = True
+    update_lens(f1, f4)
 
 class SlidersGroup(QGroupBox):
     valueChanged = pyqtSignal(int)
@@ -73,7 +127,7 @@ class SlidersGroup(QGroupBox):
         super(SlidersGroup, self).__init__(title, parent)
 
         minimumValue = 0
-        maximumValue = 3
+        maximumValue = 1
         spinBoxValue = 1
 
         orientation = Qt.Horizontal
@@ -162,13 +216,21 @@ class OD():
         correction = -self.f4((1/self.magnification_f1_f2) + 1)
         self.f3 = self.f4 + correction
         self.magnification_f3_f4 = -self.f3/self.f4
-    
+
+'''
+Remaining letters:
+1234567890
+  ERTYUI P
+    GH  L
+    BN
+'''
 class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.slider1 = SlidersGroup("Virtual Image Distance")
         self.outputs1 = OutputsGroup("Before Correction")
         self.outputs2 = OutputsGroup("After Correction")
+        self.offset = 0.0
 
         self.slider1.slider.valueChanged.connect(self.calculateOutputs)
         
@@ -187,7 +249,7 @@ class Window(QWidget):
                 while(time.time() - prev_time < 2):
                     pass
                 if(increment == True):
-                    increment_lens()
+                    increment_index()
                     print(index)
                     if(index == len(f1_l) - 1):
                         print('Increment is changed to False')
@@ -195,7 +257,7 @@ class Window(QWidget):
                     else:
                         self.slider1.spinBox_c.setValue(self.slider1.spinBox_c.value() + 1)
                 else:
-                    decrement_lens()
+                    decrement_index()
                     print(index)
                     if(index == 0):
                         print('Increment is changed to True')
@@ -205,29 +267,47 @@ class Window(QWidget):
         if e.key() == Qt.Key_Q:
             if(self.slider1.spinBox_c.minimum() < self.slider1.spinBox_c.value()):
                 self.slider1.spinBox_c.setValue(self.slider1.spinBox_c.value() - 1)
-                decrement_lens()
+                decrement_index()
         if e.key() == Qt.Key_W:
             if(self.slider1.spinBox_c.maximum() > self.slider1.spinBox_c.value()):
                 self.slider1.spinBox_c.setValue(self.slider1.spinBox_c.value() + 1)
-                increment_lens()
+                increment_index()
         if e.key() == Qt.Key_A:
             if(self.slider1.spinBox_c.minimum() < self.slider1.spinBox_c.value()):
                 self.slider1.spinBox_c.setValue(self.slider1.spinBox_c.value() - 1)
-                decrement_lens(True, False)
+                decrement_index(True, False)
         if e.key() == Qt.Key_S:
             if(self.slider1.spinBox_c.maximum() > self.slider1.spinBox_c.value()):
                 self.slider1.spinBox_c.setValue(self.slider1.spinBox_c.value() + 1)
-                increment_lens(True, False)
+                increment_index(True, False)
         if e.key() == Qt.Key_Z:
             if(self.slider1.spinBox_c.minimum() < self.slider1.spinBox_c.value()):
                 self.slider1.spinBox_c.setValue(self.slider1.spinBox_c.value() - 1)
-                decrement_lens(False, True)
+                decrement_index(False, True)
         if e.key() == Qt.Key_X:
             if(self.slider1.spinBox_c.maximum() > self.slider1.spinBox_c.value()):
                 self.slider1.spinBox_c.setValue(self.slider1.spinBox_c.value() + 1)
-                increment_lens(False, True)
+                increment_index(False, True)
+        if e.key() == Qt.Key_J:
+            self.offset = self.offset - 0.1
+            calc_f4_l(self.offset)
+        if e.key() == Qt.Key_K:
+            self.offset = self.offset + 0.1
+            calc_f4_l(self.offset)
         if e.key() == Qt.Key_Escape:
             self.close()
+        if e.key() == Qt.Key_M:
+            set_f1_middle()
+        if e.key() == Qt.Key_R:
+            reset_fl()
+        if e.key() == Qt.Key_D:
+            modify_current_fl(1, -0.1)
+        if e.key() == Qt.Key_F:
+            modify_current_fl(1, 0.1)
+        if e.key() == Qt.Key_C:
+            modify_current_fl(4, -0.1)
+        if e.key() == Qt.Key_V:
+            modify_current_fl(4, 0.1)
 
     def calculateOutputs(self):
         self.outputs1.updateImageDistance(self.slider1.slider.value())

@@ -105,17 +105,17 @@ def initialize_IOD(IOD):
 
 
     curr_lens = OD.lens()
-    curr_lens.focal_length = cf.convert_dpt2cm(16.0)
-    curr_lens.d_prev_lens = 0.0
-    curr_lens.tunable = False
-    IOD.lens_l.append(curr_lens)
-
-    curr_lens = OD.lens()
     curr_lens.focal_length = -1
-    curr_lens.d_prev_lens = 1.0
+    curr_lens.d_prev_lens = 0.0
     curr_lens.tunable = True
     IOD.lens_l.append(curr_lens)
     
+    curr_lens = OD.lens()
+    curr_lens.focal_length = cf.convert_dpt2cm(20.0)
+    curr_lens.d_prev_lens = 1.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+
     curr_lens = OD.lens()
     curr_lens.focal_length = common_f2_f3
     curr_lens.d_prev_lens = d_f1_f2
@@ -135,16 +135,17 @@ def initialize_IOD(IOD):
     IOD.lens_l.append(curr_lens)
 
     curr_lens = OD.lens()
-    curr_lens.focal_length = cf.convert_dpt2cm(-2.5)
-    curr_lens.d_prev_lens = 1.0
+    curr_lens.focal_length = cf.convert_dpt2cm(-3.0)
+    curr_lens.d_prev_lens = 2.0
     curr_lens.tunable = False
     IOD.lens_l.append(curr_lens)
 
     IOD.length = 0
-    IOD.num_lenses = 5
-    IOD.num_lenses_om = 3
+    IOD.num_lenses = 0
+    IOD.num_lenses_om = 4
     IOD.num_tunable_lenses = 0
     for curr_lens in IOD.lens_l:
+        IOD.num_lenses = IOD.num_lenses + 1
         # IOD.length = IOD.length + curr_lens.d_prev_lens
         if(curr_lens.tunable == True):
             IOD.num_tunable_lenses = IOD.num_tunable_lenses + 1
@@ -199,9 +200,9 @@ def using_differential_evolution():
     energy_function_args = [IOD]
 
     ppo = pp.PrettyPrinter(indent=4)
-    # for lens in IOD.lens_l:
-    #     ppo.pprint(vars(lens))
-    # ppo.pprint(vars(IOD))
+    for lens in IOD.lens_l:
+        ppo.pprint(vars(lens))
+    ppo.pprint(vars(IOD))
 
     if(show_fl_in_diopters == True):
         str1 = '     OM      RW  '
@@ -300,12 +301,12 @@ def using_differential_evolution():
                 print(str)
 
 
-            if(show_fl_in_diopters == True):
-                f1_l.append(cf.convert_cm2dpt(IOD.lens_l[1].focal_length))
-                f4_l.append(cf.convert_cm2dpt(IOD.lens_l[-2].focal_length))
-            else:
-                f1_l.append(IOD.lens_l[1].focal_length)
-                f4_l.append(IOD.lens_l[-2].focal_length)
+            # if(show_fl_in_diopters == True):
+            #     f1_l.append(cf.convert_cm2dpt(IOD.lens_l[1].focal_length))
+            #     f4_l.append(cf.convert_cm2dpt(IOD.lens_l[-2].focal_length))
+            # else:
+            #     f1_l.append(IOD.lens_l[1].focal_length)
+            #     f4_l.append(IOD.lens_l[-2].focal_length)
                 
 
         IOD.calc_ABCD_matrices()
@@ -318,6 +319,9 @@ def using_differential_evolution():
         print(IOD.TA)
         print(IOD.OO)
         print('Norm: %7.2f' %(IOD.norm))
+
+    for idx, lens in enumerate(IOD.lens_l):
+        print(lens.d_prev_lens)
     
     # print('Mean of f1: %f' % (np.mean(f1_l)))
     # print('Offset lens for f1: %f Diopters' % (np.mean(f1_l) - 7.5))
