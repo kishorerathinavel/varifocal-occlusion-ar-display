@@ -13,8 +13,8 @@ import winsound
 # f4_l = [11.26, 10.96, 9.80, 8.24]
 
 #f1_orig = [5.00, 7.39]
-f1_orig = [7.00, 20.00]
-f4_orig = [8.00, 6.00]
+f1_orig = [18.0, 11.8]
+f4_orig = [4.8, 6.9]
 
 f1_l = f1_orig.copy()
 f4_l = f4_orig.copy()
@@ -82,7 +82,7 @@ def decrement_index(f1=True, f2=True):
         index = 0
     update_lens(f1,f2)
 
-def set_f1_middle():
+def set_fl_middle():
     global f1_l, f4_l
     f1_middle = (f1_l[0] + f1_l[1])/2.0
     f1_l = [f1_middle, f1_middle]
@@ -90,6 +90,13 @@ def set_f1_middle():
     f4_l = [f4_middle, f4_middle]
     update_lens(True, True)
 
+def set_fl_absolute_middle():
+    global f1_l, f4_l
+    f1_middle = (7.0 + 27.0)/2.0
+    f1_l = [f1_middle, f1_middle]
+    f4_middle = (4.0 + 11.0)/2.0
+    f4_l = [f4_middle, f4_middle]
+    update_lens(True, True)
 
 def reset_fl():
     global f1_l, f4_l
@@ -103,8 +110,8 @@ def modify_current_fl(lens_num, delta):
     f4 = False
     if(lens_num == 1):
         f1_l[index] = f1_l[index] + delta
-        if(f1_l[index] > 20.0):
-            f1_l[index] = 20.0
+        if(f1_l[index] > 27.0):
+            f1_l[index] = 27.0
             winsound.Beep(beep_frequency, beep_duration)
         if(f1_l[index] < 7.0):
             f1_l[index] = 7.0
@@ -296,8 +303,10 @@ class Window(QWidget):
             calc_f4_l(self.offset)
         if e.key() == Qt.Key_Escape:
             self.close()
+        if e.key() == Qt.Key_N:
+            set_fl_absolute_middle()
         if e.key() == Qt.Key_M:
-            set_f1_middle()
+            set_fl_middle()
         if e.key() == Qt.Key_R:
             reset_fl()
         if e.key() == Qt.Key_D:
