@@ -1,3 +1,17 @@
+*/**/x64
+*/**/Debug
+*/**/Release
+*.suo
+*.user
+*.filters
+*.sdf
+*.opensdf
+*.ipch
+
+
+
+
+
 *~
 *#
 *.bak
