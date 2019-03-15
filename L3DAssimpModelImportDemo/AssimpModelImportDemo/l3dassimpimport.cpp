@@ -66,10 +66,8 @@
 #include "filepaths.h"
 #include <FreeImage.h>
 
-#include <stdio.h>
-#include <conio.h>
-#include "pyhelper.h"
-
+#include "testPythonInterface.h"
+#include "lens_controls.h"
 
 // This is for a shader uniform block
 struct MyMaterial {
@@ -127,7 +125,7 @@ struct MyMesh {
 	int numFaces;
 };
 
-#define NUM_MODELS 3
+#define NUM_MODELS 1
 class Model {
 public:
 	std::vector<struct MyMesh> myMesh;
@@ -170,6 +168,7 @@ bool saveFramebufferOnce = false;
 bool saveFramebufferUntilStop = false;
 
 GLuint rbo_depth_image, fbo_depth_image, tex_depth_image;
+
 
 #define M_PI       3.14159265358979323846f
 
@@ -1056,72 +1055,113 @@ void renderScene() {
 	glutSwapBuffers();
 }
 
-
 // ------------------------------------------------------------
 //
 // Events from the Keyboard
 //
 
 float stepSize = 0.1;
+int keymapmode = 1;
 void processKeys(unsigned char key, int xx, int yy) {
-	switch (key) {
-
-	case 27:
-
+	if (key == 27) {
 		glutLeaveMainLoop();
-		break;
-
-	case 'z': r -= 0.1f; break;
-	case 'x': r += 0.1f; break;
-	case 'm': glEnable(GL_MULTISAMPLE); break;
-	case 'M': glDisable(GL_MULTISAMPLE); break;
-	case '1': currModel = &model[0]; printf("Current Model is 1 \n"); break;
-	case '2': currModel = &model[1]; printf("Current Model is 2 \n"); break;
-	case '3': currModel = &model[2]; printf("Current Model is 2 \n"); break;
-	case '9': stepSize = stepSize / 3.0; break;
-	case '0': stepSize = stepSize * 3.0; break;
-	case 's': rgb = true; saveFramebufferOnce = true; printf("Saving framebuffer \n"); break;
-	case 'S': {
-		rgb = true;
-		saveFramebufferUntilStop = !saveFramebufferUntilStop;
-		if (saveFramebufferUntilStop) {
-			printf("Saving framebuffer until stop. Press S again to stop \n");
-		}
-		else {
-			printf("Stoped saving \n");
-		}
-		break;
-	}
-	case 'q': {
-		currModel->scaleFactor -= 0.005f*stepSize;
-		if (currModel->scaleFactor < 0.005)
-			currModel->scaleFactor = 0.005;
-		break;
-	}
-	case 'w': {
-		currModel->scaleFactor += 0.005f*stepSize;
-		break;
-	}
-	case 'e': currModel->rotation[0] -= stepSize; break;
-	case 'r': currModel->rotation[0] += stepSize; break;
-	case 'd': currModel->rotation[1] -= stepSize; break;
-	case 'f': currModel->rotation[1] += stepSize; break;
-	case 'c': currModel->rotation[2] -= stepSize; break;
-	case 'v': currModel->rotation[2] += stepSize; break;
-	case 't': currModel->translation[0] -= stepSize; break;
-	case 'y': currModel->translation[0] += stepSize; break;
-	case 'g': currModel->translation[1] -= stepSize; break;
-	case 'h': currModel->translation[1] += stepSize; break;
-	case 'b': currModel->translation[2] -= stepSize; break;
-	case 'n': currModel->translation[2] += stepSize; break;
-	case 'p': savePosition(); printf("Saving Position Information \n"); break;
-	case 'u': usePosition(); break;
-	default: printf("Entered key does nothing \n");
 	}
 
-	camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-	camY = r *   						     sin(beta * 3.14f / 180.0f);
+	if (key == '`') {
+		keymapmode = (keymapmode++) % 4;
+		printf("keymapmode: %d \n", keymapmode);
+	}
+	else {
+		if (keymapmode == 1) {
+			/*
+			Remaining letters:
+			qwertyuiop
+			asdfghjkl
+			zxcvbnm
+			*/
+
+			switch (key) {
+			case 'q': decrement_index(true, true); break;
+			case 'w': increment_index(true, true); break;
+			case 'a': decrement_index(true, false); break;
+			case 's': increment_index(true, false); break;
+			case 'z': decrement_index(false, true); break;
+			case 'x': increment_index(false, true); break;
+			case 'n': set_fl_absolute_middle(); break;
+			case 'm': set_fl_middle(); break;
+			case 'r': reset_orig_fl(); break;
+			case 'd': modify_current_fl(1, -0.1); break;
+			case 'f': modify_current_fl(1, 0.1); break;
+			case 'c': modify_current_fl(4, -0.1); break;
+			case 'v': modify_current_fl(4, 0.1); break;
+			default: printf("Entered key does nothing \n");
+			}
+		}
+		else if (keymapmode == 2) {
+			/*
+			Remaining letters:
+			qwertyuiop
+			asdfghjkl
+			zxcvbnm
+			*/
+
+			switch (key) {
+			case 27: {
+						 glutLeaveMainLoop();
+						 break;
+			}
+			case 'z': r -= 0.1f; break;
+			case 'x': r += 0.1f; break;
+			case 'm': glEnable(GL_MULTISAMPLE); break;
+			case 'M': glDisable(GL_MULTISAMPLE); break;
+			case '1': currModel = &model[0]; printf("Current Model is 1 \n"); break;
+			case '2': currModel = &model[1]; printf("Current Model is 2 \n"); break;
+			case '3': currModel = &model[2]; printf("Current Model is 2 \n"); break;
+			case '9': stepSize = stepSize / 3.0; break;
+			case '0': stepSize = stepSize * 3.0; break;
+			case 's': rgb = true; saveFramebufferOnce = true; printf("Saving framebuffer \n"); break;
+			case 'S': {
+						  rgb = true;
+						  saveFramebufferUntilStop = !saveFramebufferUntilStop;
+						  if (saveFramebufferUntilStop) {
+							  printf("Saving framebuffer until stop. Press S again to stop \n");
+						  }
+						  else {
+							  printf("Stoped saving \n");
+						  }
+						  break;
+			}
+			case 'q': {
+						  currModel->scaleFactor -= 0.005f*stepSize;
+						  if (currModel->scaleFactor < 0.005)
+							  currModel->scaleFactor = 0.005;
+						  break;
+			}
+			case 'w': {
+						  currModel->scaleFactor += 0.005f*stepSize;
+						  break;
+			}
+			case 'e': currModel->rotation[0] -= stepSize; break;
+			case 'r': currModel->rotation[0] += stepSize; break;
+			case 'd': currModel->rotation[1] -= stepSize; break;
+			case 'f': currModel->rotation[1] += stepSize; break;
+			case 'c': currModel->rotation[2] -= stepSize; break;
+			case 'v': currModel->rotation[2] += stepSize; break;
+			case 't': currModel->translation[0] -= stepSize; break;
+			case 'y': currModel->translation[0] += stepSize; break;
+			case 'g': currModel->translation[1] -= stepSize; break;
+			case 'h': currModel->translation[1] += stepSize; break;
+			case 'b': currModel->translation[2] -= stepSize; break;
+			case 'n': currModel->translation[2] += stepSize; break;
+			case 'p': savePosition(); printf("Saving Position Information \n"); break;
+			case 'u': usePosition(); break;
+			default: printf("Entered key does nothing \n");
+			}
+			camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+			camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+			camY = r *   						     sin(beta * 3.14f / 180.0f);
+		}
+	}
 
 	//  uncomment this if not using an idle func
 	//	glutPostRedisplay();
@@ -1416,193 +1456,6 @@ int init()
 	return true;
 }
 
-void testPythonInterface1() {
-	PyObject* pInt;
-
-	Py_Initialize();
-
-	PyRun_SimpleString("print('Hello World from Embedded Python!!!')");
-	
-	Py_Finalize();
-
-	printf("\nPress any key to exit...\n");
-	if(!_getch()) _getch();
-}
-
-void testPythonInterface2() {
-	char filename[] = "testPythonInterface2.py";
-	FILE* fp;
-
-	Py_Initialize();
-
-	fp = _Py_fopen(filename, "r");
-	PyRun_SimpleFile(fp, filename);
-
-	Py_Finalize();
-}
-
-void testPythonInterface3() {
-    CPyInstance pyInstance;
-
-	PyRun_SimpleString("print('Hello World from Embedded Python!!!')");
-	
-
-	printf("\nPress any key to exit...\n");
-	if(!_getch()) _getch();
-}
-
-void testPythonInterface4() {
-	CPyInstance pInstance;
-
-	CPyObject p;
-	p = PyLong_FromLong(50);
-	printf_s("Value = %1d\n", PyLong_AsLong(p));
-}
-
-void testPythonInterface5() {
-	CPyInstance pInstance;
-
-	CPyObject pName = PyUnicode_FromString("testPythonInterface5");
-	CPyObject pModule = PyImport_Import(pName);
-
-	if(pModule) {
-		CPyObject pFunc = PyObject_GetAttrString(pModule, "getInteger");
-		if(pFunc && PyCallable_Check(pFunc)) {
-			CPyObject pValue = PyObject_CallObject(pFunc, NULL);
-			printf_s("C: getInteger() = %1d\n", PyLong_AsLong(pValue));
-		}
-		else {
-			printf("Error: function getInteger() \n");
-		}
-	}
-	else {
-		printf_s("Error: Module not imported \n");
-	}
-}
-
-int testPythonInterface5_2() {
-	CPyInstance pInstance;
-
-	CPyObject pName = PyUnicode_FromString("testPythonInterface5");
-	CPyObject pModule = PyImport_Import(pName);
-
-	if(!pModule) {
-		printf_s("Error: Module not imported \n");
-		return(0);
-	}
-
-	CPyObject pFunc = PyObject_GetAttrString(pModule, "getInteger");
-	if(!(pFunc && PyCallable_Check(pFunc))) {
-		printf("Error: function getInteger() \n");
-		return(0);
-	}
-
-	CPyObject pValue = PyObject_CallObject(pFunc, NULL);
-	printf_s("C: getInteger() = %1d\n", PyLong_AsLong(pValue));
-}
-
-int testPythonInterface6() {
-	CPyInstance pInstance;
-
-	CPyObject pName = PyUnicode_FromString("testPythonInterface6");
-	CPyObject pModule = PyImport_Import(pName);
-
-	if(!pModule) {
-		printf_s("Error: Module not imported \n");
-		return(0);
-	}
-
-	CPyObject pDict = PyModule_GetDict(pModule);
-	if(!pDict) {
-		printf_s("Error: Failed to get dictionary \n");
-		return(0);	
-	}
-
-	CPyObject python_class = PyDict_GetItemString(pDict, "Adder");
-	if(!(python_class && PyCallable_Check(python_class))) {
-		printf_s("Error: Failed to get class \n");
-		return(0);		
-	}
-
-	CPyObject arglist = Py_BuildValue("(i)", 20);
-	if(!arglist) {
-		printf_s("Error: Failed to build arglist \n");
-		return(0);				
-	}
-
-	CPyObject python_object = PyObject_CallObject(python_class, arglist);
-	if(!python_object) {
-		printf_s("Error: Failed to create object \n");
-		return(0);			
-	}
-
-	CPyObject value = PyObject_CallMethod(python_object, "test1", "(i)", 5);
-	if(!value) {
-		printf_s("Error: Failed to call object's function \n");
-		return(0);				
-	}
-	printf_s("C: value = %d\n", PyLong_AsLong(value));
-}
-
-int testPythonInterfaceLens() {
-	CPyInstance pInstance;
-
-	//CPyObject pName = PyUnicode_FromString(".\\..\\..\\AssimpModelImportDemo\\lens");
-	//PySys_SetPath(L"E:/kishoreWorkspace/Displays/Occlusion/voss/L3DAssimpModelImportDemo/AssimpModelImportDemo/");
-	CPyObject sysPath = PySys_GetObject((char*)"path");
-	CPyObject modulePath = PyUnicode_FromString("E:/kishoreWorkspace/Displays/Occlusion/voss/L3DAssimpModelImportDemo/AssimpModelImportDemo/");
-	PyList_Append(sysPath, modulePath);
-	CPyObject pName = PyUnicode_FromString("lens");
-	CPyObject pModule = PyImport_Import(pName);
-
-	if(!pModule) {
-		printf_s("Error: Module not imported \n");
-		return(0);
-	}
-
-	CPyObject pDict = PyModule_GetDict(pModule);
-	if(!pDict) {
-		printf_s("Error: Failed to get dictionary \n");
-		return(0);	
-	}
-
-	CPyObject python_class = PyDict_GetItemString(pDict, "Lens");
-	if(!(python_class && PyCallable_Check(python_class))) {
-		printf_s("Error: Failed to get class \n");
-		return(0);		
-	}
-
-	CPyObject arglist = Py_BuildValue("(s)", "COM8");
-	if(!arglist) {
-		printf_s("Error: Failed to build arglist \n");
-		return(0);				
-	}
-
-	CPyObject python_object = PyObject_CallObject(python_class, arglist);
-	if(!python_object) {
-		printf_s("Error: Failed to create object \n");
-		return(0);			
-	}
-
-	CPyObject python_object_variable = PyObject_GetAttrString(python_object, "firmware_version");
-	if(!python_object_variable) {
-		printf_s("Error: Failed to return value from object member \n");
-		return(0);				
-	}
-	CPyObject repr = PyObject_Repr(python_object_variable);
-	CPyObject str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-	const char *bytes = PyBytes_AsString(str);
-	printf("%s\n", bytes);
-
-	CPyObject value = PyObject_CallMethod(python_object, "to_focal_power_mode", nullptr);
-	if(!value) {
-		printf_s("Error: Failed to return value from object function \n");
-		return(0);					
-	}
-
-	value = PyObject_CallMethod(python_object, "set_diopter", "(f)", 5.2);
-
-}
 
 // ------------------------------------------------------------
 //
@@ -1610,9 +1463,11 @@ int testPythonInterfaceLens() {
 //
 int main(int argc, char **argv) {
 
-	testPythonInterfaceLens();
-
-	return(0);
+	int success = initLenses();
+	if (!success) {
+		printf("Encounted error in initLenses() \n");
+		return(0);
+	}
 	//  GLUT initialization
 	glutInit(&argc, argv);
 

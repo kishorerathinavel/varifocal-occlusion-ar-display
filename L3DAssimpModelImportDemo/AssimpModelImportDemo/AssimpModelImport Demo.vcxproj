@@ -151,6 +151,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="l3dassimpimport.cpp" />
+    <ClCompile Include="lens_controls.cpp" />
+    <ClCompile Include="testPythonInterface.cpp" />
     <ClCompile Include="textfile.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -159,7 +161,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="filepaths.h" />
+    <ClInclude Include="lens_controls.h" />
     <ClInclude Include="pyhelper.h" />
+    <ClInclude Include="testPythonInterface.h" />
     <ClInclude Include="textfile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
