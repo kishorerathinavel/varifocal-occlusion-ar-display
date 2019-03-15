@@ -1,7 +1,6 @@
 #version 330
 
 layout (std140) uniform Matrices {
-
   mat4 projMatrix;
   mat4 viewMatrix;
   mat4 modelMatrix;

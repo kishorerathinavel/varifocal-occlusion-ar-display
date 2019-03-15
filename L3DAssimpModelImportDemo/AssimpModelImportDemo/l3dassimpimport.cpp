@@ -71,7 +71,6 @@
 
 // This is for a shader uniform block
 struct MyMaterial {
-
 	float diffuse[4];
 	float ambient[4];
 	float specular[4];
@@ -118,14 +117,13 @@ char *fname_fragment_shader_depth = "depthmap.frag";
 
 // Information to render each assimp node
 struct MyMesh {
-
 	GLuint vao;
 	GLuint texIndex;
 	GLuint uniformBlockIndex;
 	int numFaces;
 };
 
-#define NUM_MODELS 1
+#define NUM_MODELS 2
 class Model {
 public:
 	std::vector<struct MyMesh> myMesh;
@@ -167,7 +165,8 @@ float r = 1.2f;
 bool saveFramebufferOnce = false;
 bool saveFramebufferUntilStop = false;
 
-GLuint rbo_depth_image, fbo_depth_image, tex_depth_image;
+GLuint rbo_depth_image, fbo_rgbd, tex_rgb, tex_depth;
+GLuint texBackground;
 
 
 #define M_PI       3.14159265358979323846f
@@ -1008,7 +1007,7 @@ char fname[1024], fname1[1024], fname2[1024];
 // Rendering Callback Function
 void renderScene() {
 
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo_depth_image);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo_rgbd);
 	glPushAttrib(GL_VIEWPORT_BIT);
 	glViewport(0, 0, 1024, 768);
 
@@ -1021,14 +1020,14 @@ void renderScene() {
 	// we are only going to use texture unit 0
 	// unfortunately samplers can't reside in uniform blocks
 	// so we have set this uniform separately
-	glUniform1i(texUnit, 0);
+	//glUniform1i(texUnit, texBackground);
 
 	drawModels();
 
 	if (saveFramebufferOnce | saveFramebufferUntilStop) {
 		sprintf(fname1, "./outputs/trial_%02d_depth.png", imgCounter);
 		sprintf(fname2, "./outputs/trial_%02d_rgb.png", imgCounter);
-		saveImage(fbo_depth_image, fname1, fname2);
+		saveImage(fbo_rgbd, fname1, fname2);
 		imgCounter++;
 		saveFramebufferOnce = false;
 	}
@@ -1049,7 +1048,8 @@ void renderScene() {
 	glUseProgram(0);
 	glViewport(0, 0, 1024, 768);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	drawTextureToFramebuffer(tex_depth_image);
+	//drawTextureToFramebuffer(tex_depth);
+	drawTextureToFramebuffer(tex_rgb);
 
 	// swap buffers
 	glutSwapBuffers();
@@ -1331,7 +1331,7 @@ GLuint setupShader() {
 	glAttachShader(p, v);
 	glAttachShader(p, f);
 
-	glBindFragDataLocation(p, 0, "output");
+//	glBindFragDataLocation(p, 0, "output");
 
 	glBindAttribLocation(p, vertexLoc, "position");
 	glBindAttribLocation(p, normalLoc, "normal");
@@ -1369,7 +1369,39 @@ const GLfloat mat_diffuse[] = { 0.8f, 0.8f, 0.8f, 1.0f };
 const GLfloat mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 const GLfloat high_shininess[] = { 100.0f };
 
+void loadTexture(const char* lpszPathName, GLuint tex) {
+	FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
 
+	fif = FreeImage_GetFileType(lpszPathName, 0);
+	if (fif == FIF_UNKNOWN) {
+		fif = FreeImage_GetFIFFromFilename(lpszPathName);
+	}
+
+	if ((fif != FIF_UNKNOWN) && FreeImage_FIFSupportsReading(fif)) {
+		FIBITMAP *image = FreeImage_Load(fif, lpszPathName, 0);
+		if (image != NULL) {
+			//convert to 32-bpp so things will be properly aligned 
+			FIBITMAP* temp = image;
+			image = FreeImage_ConvertTo32Bits(image);
+			FreeImage_Unload(temp);
+
+
+			glBindTexture(GL_TEXTURE_2D, tex);
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, FreeImage_GetPitch(image) / 4);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, FreeImage_GetWidth(image), FreeImage_GetHeight(image), 0, GL_BGRA, GL_UNSIGNED_BYTE, FreeImage_GetBits(image));
+			FreeImage_Unload(image);
+		}
+		else {
+			printf("error reading image '%s', exiting...\n", lpszPathName);
+			exit(1);
+		}
+	}
+	else {
+		printf("missing/unknown/unsupported image '%s', exiting...\n", lpszPathName);
+		exit(1);
+	}
+
+}
 
 int init()
 {
@@ -1382,7 +1414,6 @@ int init()
 		if (!Import3DFromFile(model[modelIter]))
 			return(0);
 		LoadGLTextures(model[modelIter]);
-
 	}
 
 	glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)glutGetProcAddress("glGetUniformBlockIndex");
@@ -1395,11 +1426,17 @@ int init()
 	program = setupShader();
 	for (int modelIter = 0; modelIter < NUM_MODELS; modelIter++) {
 		genVAOsAndUniformBuffer(model[modelIter]);
-		//genVAOsAndUniformBuffer(model[modelIter]);
 	}
 
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+
+	char fileName[1024] = "background.png";
+	glGenTextures(1, &texBackground);
+	glBindTexture(GL_TEXTURE_2D, texBackground);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	loadTexture(fileName, texBackground);
 
 	//
 	// Uniform Block
@@ -1410,11 +1447,18 @@ int init()
 	glBindBufferRange(GL_UNIFORM_BUFFER, matricesUniLoc, matricesUniBuffer, 0, MatricesUniBufferSize);	//setUniforms();
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-	glGenTextures(1, &tex_depth_image);
-	glBindTexture(GL_TEXTURE_2D, tex_depth_image);
+	glGenTextures(1, &tex_rgb);
+	glBindTexture(GL_TEXTURE_2D, tex_rgb);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 768, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenTextures(1, &tex_depth);
+	glBindTexture(GL_TEXTURE_2D, tex_depth);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1024, 768, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	printf("Works so far \n");
@@ -1423,10 +1467,11 @@ int init()
 	glBindRenderbuffer(GL_RENDERBUFFER, rbo_depth_image);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1024, 768);
 
-	glGenFramebuffers(1, &fbo_depth_image);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo_depth_image);
+	glGenFramebuffers(1, &fbo_rgbd);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo_rgbd);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo_depth_image);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_depth_image, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex_depth, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_rgb, 0);
 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE) {
@@ -1463,11 +1508,11 @@ int init()
 //
 int main(int argc, char **argv) {
 
-	int success = initLenses();
-	if (!success) {
-		printf("Encounted error in initLenses() \n");
-		return(0);
-	}
+	//int success = initLenses();
+	//if (!success) {
+	//	printf("Encounted error in initLenses() \n");
+	//	return(0);
+	//}
 	//  GLUT initialization
 	glutInit(&argc, argv);
 
@@ -1522,7 +1567,7 @@ int main(int argc, char **argv) {
 	// delete buffers
 	glDeleteBuffers(1, &matricesUniBuffer);
 	glDeleteRenderbuffers(1, &rbo_depth_image);
-	glDeleteFramebuffers(1, &fbo_depth_image);
+	glDeleteFramebuffers(1, &fbo_rgbd);
 
 	return(0);
 }

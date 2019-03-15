@@ -13,7 +13,6 @@ uniform	sampler2D texUnit;
 
 in vec2 TexCoord;
 in vec3 Normal;
-out vec4 output;
 in float Depth;
 
 void main()
@@ -37,9 +36,10 @@ void main()
     amb = color * 0.23;
   }
   // color = vec4(Depth);
-  // output = (color);
-  output = (color * intensity) + amb;
+  // gl_FragColor = (color);
+  gl_FragColor = (color * intensity) + amb;
+  // gl_FragColor = vec4(Depth);
   // gl_FragDepth = gl_FragCoord.z/gl_FragCoord.w;
   // gl_FragDepth = (Depth - 20.0)/360.0;
-  // output = amb;
+  // gl_FragColor = amb;
 }
