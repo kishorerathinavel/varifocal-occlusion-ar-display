@@ -94,7 +94,7 @@ GLuint matricesUniLoc = 1, materialUniLoc = 2;
 // The sampler uniform for textured models
 // we are assuming a single texture so this will
 //always be texture unit 0
-GLuint texUnit = 0;
+GLuint texUnit = 0, depth_map = 1;
 
 // Uniform Buffer for Matrices
 // this buffer will contain 3 matrices: projection, view and model
@@ -109,11 +109,12 @@ GLuint matricesUniBuffer;
 
 // Program and Shader Identifiers
 GLuint program, vertexShader, fragmentShader;
+GLuint varifocal_program, varifocal_fragmentShader;
 
 // Shader Names
 char *fname_vertex_shader = "dirlightdiffambpix.vert";
 char *fname_fragment_shader_rgb = "dirlightdiffambpix.frag";
-char *fname_fragment_shader_depth = "depthmap.frag";
+char *fname_varifocal_fragment_shader = "postprocess.frag";
 
 // Information to render each assimp node
 struct MyMesh {
@@ -984,9 +985,11 @@ void usePosition() {
 
 void drawTextureToFramebuffer(int textureID) {
 	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
 	glLoadIdentity();
 	glOrtho(0, 1, 0, 1, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
 	glLoadIdentity();
 	glColor3f(1, 1, 1);
 	glEnable(GL_TEXTURE_2D);
@@ -998,6 +1001,10 @@ void drawTextureToFramebuffer(int textureID) {
 	glTexCoord2f(0, 1); glVertex3f(0, 1, 0);
 	glEnd();
 	glDisable(GL_TEXTURE_2D);
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
 }
 
 
@@ -1045,7 +1052,8 @@ void renderScene() {
 
 	glPopAttrib();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glUseProgram(0);
+	glUseProgram(varifocal_program);
+	glUniform1i(depth_map, tex_depth);
 	glViewport(0, 0, 1024, 768);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//drawTextureToFramebuffer(tex_depth);
@@ -1301,6 +1309,92 @@ void printProgramInfoLog(GLuint obj)
 	}
 }
 
+//GLuint setupVarifocalShader() {
+//
+//	char *vs = NULL, *fs = NULL, *fs2 = NULL;
+//
+//	GLuint p, v, f;
+//
+//	v = glCreateShader(GL_VERTEX_SHADER);
+//	f = glCreateShader(GL_FRAGMENT_SHADER);
+//
+//	vs = textFileRead(fname_vertex_shader);
+//	fs = textFileRead(fname_fragment_shader_rgb);
+//
+//	const char * vv = vs;
+//	const char * ff = fs;
+//
+//	glShaderSource(v, 1, &vv, NULL);
+//	glShaderSource(f, 1, &ff, NULL);
+//
+//	free(vs); free(fs);
+//
+//	glCompileShader(v);
+//	glCompileShader(f);
+//
+//	printShaderInfoLog(v);
+//	printShaderInfoLog(f);
+//
+//	p = glCreateProgram();
+//	glAttachShader(p, v);
+//	glAttachShader(p, f);
+//
+////	glBindFragDataLocation(p, 0, "output");
+//
+//	glBindAttribLocation(p, vertexLoc, "position");
+//	glBindAttribLocation(p, normalLoc, "normal");
+//	glBindAttribLocation(p, texCoordLoc, "texCoord");
+//
+//	glLinkProgram(p);
+//	glValidateProgram(p);
+//	printProgramInfoLog(p);
+//
+//	program = p;
+//	vertexShader = v;
+//	fragmentShader = f;
+//
+//	GLuint k = glGetUniformBlockIndex(p, "Matrices");
+//	glUniformBlockBinding(p, k, matricesUniLoc);
+//	glUniformBlockBinding(p, glGetUniformBlockIndex(p, "Material"), materialUniLoc);
+//
+//	texUnit = glGetUniformLocation(p, "texUnit");
+//
+//	return(p);
+//}
+GLuint setupVarifocalShader() {
+	char *fs = NULL, *fs2 = NULL;
+	GLuint p, f;
+
+	f = glCreateShader(GL_FRAGMENT_SHADER);
+	fs = textFileRead(fname_varifocal_fragment_shader);
+
+	const char * ff = fs;
+
+	glShaderSource(f, 1, &ff, NULL);
+
+	free(fs);
+
+	glCompileShader(f);
+
+	printShaderInfoLog(f);
+
+	p = glCreateProgram();
+	glAttachShader(p, f);
+
+	//glBindFragDataLocation(p, 0, "output");
+	//glBindAttribLocation(p, texCoordLoc, "texCoord");
+
+	glLinkProgram(p);
+	glValidateProgram(p);
+	printProgramInfoLog(p);
+
+	varifocal_program = p;
+	varifocal_fragmentShader = f;
+
+	texUnit = glGetUniformLocation(p, "depth_map");
+	return(p);
+}
+
 GLuint setupShader() {
 
 	char *vs = NULL, *fs = NULL, *fs2 = NULL;
@@ -1424,6 +1518,8 @@ int init()
 	glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)glutGetProcAddress("glDeleteVertexArrays");
 
 	program = setupShader();
+	varifocal_program = setupVarifocalShader();
+
 	for (int modelIter = 0; modelIter < NUM_MODELS; modelIter++) {
 		genVAOsAndUniformBuffer(model[modelIter]);
 	}

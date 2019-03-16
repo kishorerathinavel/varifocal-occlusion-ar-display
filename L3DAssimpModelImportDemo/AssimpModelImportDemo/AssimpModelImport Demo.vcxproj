@@ -159,6 +159,7 @@
     <None Include="dirlightdiffambpix.frag" />
     <None Include="dirlightdiffambpix.vert" />
     <None Include="postprocess.frag" />
+    <None Include="postprocess.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="filepaths.h" />
