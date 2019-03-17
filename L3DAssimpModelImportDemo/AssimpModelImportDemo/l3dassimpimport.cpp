@@ -88,6 +88,8 @@ std::vector<float *> matrixStack;
 float zNear = 0.01, zFar = 10.0;
 
 // For Program 1 ======================================
+GLuint rbo_depth_image, fbo_rgbd, tex_rgb, tex_depth;
+
 // Vertex Attribute Locations
 GLuint vertexLoc = 0, normalLoc = 1, texCoordLoc = 2;
 GLuint postprocess_vertexLoc, postprocess_textureLoc;
@@ -120,10 +122,13 @@ char *fname_fragment_shader_rgb = "dirlightdiffambpix.frag";
 
 
 // For Program 2 =====================================
+GLuint fbo_blur, tex_blur_rgb;
+
 // Sampler Uniform
 GLuint rgb_img, depth_map;
 GLuint zNear_passToShader, zFar_passToShader;
 GLuint linear_near_uniformLocation, linear_far_uniformLocation;
+GLuint focal_depth_uniformLocation;
 
 // Program and Shader Identifiers
 GLuint varifocal_program, varifocal_vertexShader, varifocal_fragmentShader;
@@ -132,8 +137,8 @@ GLuint varifocal_program, varifocal_vertexShader, varifocal_fragmentShader;
 char *fname_varifocal_vertex_shader = "postprocess.vert";
 char *fname_varifocal_fragment_shader = "postprocess.frag";
 
-
 float linear_near_value = 0.0, linear_far_value = 1.0;
+float focal_depth_value = 0.5;
 // For Program 2 =====================================
 
 
@@ -145,7 +150,7 @@ struct MyMesh {
 	int numFaces;
 };
 
-#define NUM_MODELS 1
+#define NUM_MODELS 2
 class Model {
 public:
 	std::vector<struct MyMesh> myMesh;
@@ -187,7 +192,6 @@ float r = 1.2f;
 bool saveFramebufferOnce = true;
 bool saveFramebufferUntilStop = false;
 
-GLuint rbo_depth_image, fbo_rgbd, tex_rgb, tex_depth;
 GLuint tex_background;
 
 float postprocess_vertices[] ={
@@ -1131,6 +1135,7 @@ void renderScene() {
 		glUniform1f(zNear_passToShader, zNear);
 		glUniform1f(linear_near_uniformLocation, linear_near_value);
 		glUniform1f(linear_far_uniformLocation, linear_far_value);
+		glUniform1f(focal_depth_uniformLocation, focal_depth_value);
 		glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, tex_rgb);
@@ -1203,6 +1208,8 @@ void processKeys(unsigned char key, int xx, int yy) {
 			case 'y': linear_near_value = modify_valuef(linear_near_value,  0.01, 0.0, linear_far_value); printf("linear_near_value: %f \n", linear_near_value); break;
 			case 'g': linear_far_value = modify_valuef(linear_far_value, -0.01, linear_near_value, 1.0); printf("linear_far_value: %f \n", linear_far_value); break;
 			case 'h': linear_far_value = modify_valuef(linear_far_value,  0.01, linear_near_value, 1.0); printf("linear_far_value: %f \n", linear_far_value); break;
+			case 'j': focal_depth_value = modify_valuef(focal_depth_value, -0.01, 0.0, 1.0); printf("focal_depth_value: %f \n", focal_depth_value); break;
+			case 'k': focal_depth_value = modify_valuef(focal_depth_value, 0.01, 0.0, 1.0); printf("focal_depth_value: %f \n", focal_depth_value); break;
 			case 'u': zFar = modify_valuef(zFar, -0.1, 1.0, 20.0); printf("zFar: %f \n", zFar); break;
 			case 'i': zFar = modify_valuef(zFar, 0.1, 1.0, 200.0); printf("zFar: %f \n", zFar); break;
 			default: printf("Entered key does nothing \n");
@@ -1246,10 +1253,13 @@ void processKeys(unsigned char key, int xx, int yy) {
 						  currModel->scaleFactor -= 0.005f*stepSize;
 						  if (currModel->scaleFactor < 0.005)
 							  currModel->scaleFactor = 0.005;
+						  printf("currModel->scaleFactor: %f\n", currModel->scaleFactor);
 						  break;
+
 			}
 			case 'w': {
 						  currModel->scaleFactor += 0.005f*stepSize;
+						  printf("currModel->scaleFactor: %f\n", currModel->scaleFactor);
 						  break;
 			}
 			case 'e': currModel->rotation[0] -= stepSize; break;
@@ -1460,6 +1470,7 @@ GLuint setupVarifocalShader() {
 	zFar_passToShader = glGetUniformLocation(varifocal_program, "zFar");
 	linear_near_uniformLocation = glGetUniformLocation(varifocal_program, "linear_near");
 	linear_far_uniformLocation = glGetUniformLocation(varifocal_program, "linear_far");
+	focal_depth_uniformLocation = glGetUniformLocation(varifocal_program, "focal_depth");
 
 	return(p);
 }

@@ -11,6 +11,7 @@ uniform float zNear;
 uniform float zFar;
 uniform float linear_near;
 uniform float linear_far;
+uniform float focal_depth;
 
 void main() {   
 	vec4 vec4_z_b = texture(depth_map, TexCoord);
@@ -18,7 +19,22 @@ void main() {
 	float z_n = 2.0 * z_b - 1.0;
 	float z_e = 2.0 * zNear * zFar / (zFar + zNear - z_n *(zFar - zNear));
 	float normalized_linear_depth = z_e/zFar;
-	if(normalized_linear_depth < 0.5) {
+
+	float depth_disparity = normalized_linear_depth - focal_depth;
+	if(depth_disparity < 0.0) {
+		depth_disparity = -1.0*depth_disparity;
+	}
+	FragColor = vec4(depth_disparity);
+	//-----------------------------------------------
+
+	/*
+	vec4 vec4_z_b = texture(depth_map, TexCoord);
+	float z_b = vec4_z_b[0];
+	float z_n = 2.0 * z_b - 1.0;
+	float z_e = 2.0 * zNear * zFar / (zFar + zNear - z_n *(zFar - zNear));
+	float normalized_linear_depth = z_e/zFar;
+
+	if(TexCoord.x < 0.5) {
 		FragColor = texture(rgb_img, TexCoord);
 	}
 	else {
@@ -26,6 +42,8 @@ void main() {
 		FragColor = vec4(normalized_linear_depth);
 	}
 	//-----------------------------------------------
+	*/
+
 
 /*
 	// 3nd Backup code to verify things are working
