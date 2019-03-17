@@ -3,15 +3,15 @@
 // Replace the model name by your model's filename
 static const std::string basepath[] = {
 	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/other-models/",
+	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/assimp-models/models/OBJ/",
 	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/other-models/",
-	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/stanford-3d-models/bunny/textured/",
-	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/assimp-models/models/OBJ/"
+	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/stanford-3d-models/bunny/textured/"
 };
 static const std::string modelname[] = {
 	"bench.obj",
+	"spider.obj",
 	"bench.obj",
-	"bunny2.obj",
-	"spider.obj"
+	"bunny2.obj"
 };
 
 //static const std::string basepath1 = "H:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/assimp-models/models/OBJ/";

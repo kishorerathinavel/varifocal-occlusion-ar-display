@@ -14,11 +14,11 @@ out vec2 TexCoord;
 out vec3 Normal;
 out float Depth;
 
-
-void main()
-{
+void main() {
   Normal = normalize(vec3(viewMatrix * modelMatrix * vec4(normal,0.0)));	
   TexCoord = vec2(texCoord);
   gl_Position = projMatrix * viewMatrix * modelMatrix * vec4(position,1.0);
-  Depth = gl_Position.z;
+  float z_n = gl_Position.z/gl_Position.w; // z_n in [-1, 1]
+  float z_b = 0.5*z_n + 0.5; // z_b in [0, 1]
+  Depth = z_b;
 }

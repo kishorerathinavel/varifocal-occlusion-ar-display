@@ -85,6 +85,9 @@ float modelMatrix[16];
 // For push and pop matrix
 std::vector<float *> matrixStack;
 
+float zNear = 0.01, zFar = 10.0;
+
+// For Program 1 ======================================
 // Vertex Attribute Locations
 GLuint vertexLoc = 0, normalLoc = 1, texCoordLoc = 2;
 GLuint postprocess_vertexLoc, postprocess_textureLoc;
@@ -95,7 +98,7 @@ GLuint matricesUniLoc = 1, materialUniLoc = 2;
 // The sampler uniform for textured models
 // we are assuming a single texture so this will
 //always be texture unit 0
-GLuint texUnit = 0, rgb_img = 1, depth_map = 2;
+GLuint texUnit;
 
 // Uniform Buffer for Matrices
 // this buffer will contain 3 matrices: projection, view and model
@@ -107,17 +110,32 @@ GLuint matricesUniBuffer;
 #define ModelMatrixOffset sizeof(float) * 16 * 2
 #define MatrixSize sizeof(float) * 16
 
-
 // Program and Shader Identifiers
 GLuint program, vertexShader, fragmentShader;
-GLuint varifocal_program, varifocal_vertexShader, varifocal_fragmentShader;
-	
 
 // Shader Names
 char *fname_vertex_shader = "dirlightdiffambpix.vert";
 char *fname_fragment_shader_rgb = "dirlightdiffambpix.frag";
+// For Program 1 ======================================
+
+
+// For Program 2 =====================================
+// Sampler Uniform
+GLuint rgb_img, depth_map;
+GLuint zNear_passToShader, zFar_passToShader;
+GLuint linear_near_uniformLocation, linear_far_uniformLocation;
+
+// Program and Shader Identifiers
+GLuint varifocal_program, varifocal_vertexShader, varifocal_fragmentShader;
+
+// Shader Names
 char *fname_varifocal_vertex_shader = "postprocess.vert";
 char *fname_varifocal_fragment_shader = "postprocess.frag";
+
+
+float linear_near_value = 0.0, linear_far_value = 1.0;
+// For Program 2 =====================================
+
 
 // Information to render each assimp node
 struct MyMesh {
@@ -127,7 +145,7 @@ struct MyMesh {
 	int numFaces;
 };
 
-#define NUM_MODELS 2
+#define NUM_MODELS 1
 class Model {
 public:
 	std::vector<struct MyMesh> myMesh;
@@ -820,10 +838,9 @@ void genVAOsAndUniformBuffer(Model& model) {
 //
 // Reshape Callback Function
 //
-
+float ratio;
 void changeSize(int w, int h) {
 
-	float ratio;
 	// Prevent a divide by zero, when window is too short
 	// (you cant make a window of zero width).
 	if (h == 0)
@@ -833,7 +850,6 @@ void changeSize(int w, int h) {
 	glViewport(0, 0, w, h);
 
 	ratio = (1.0f * w) / h;
-	buildProjectionMatrix(35.0f, ratio, 0.01f, 100.0f);
 }
 
 
@@ -859,6 +875,7 @@ void recursive_render(Model& model, const aiNode* nd)
 	memcpy(aux, &m, sizeof(float) * 16);
 	multMatrix(modelMatrix, aux);
 	setModelMatrix();
+	buildProjectionMatrix(35.0f, ratio, zNear, zFar);
 
 
 	// draw all meshes assigned to this node
@@ -1049,7 +1066,6 @@ void drawTextureToFramebuffer(int textureID) {
 	glPopMatrix();
 }
 
-
 bool rgb = true;
 int imgCounter = 0;
 char fname[1024], fname1[1024], fname2[1024];
@@ -1095,55 +1111,62 @@ void renderScene() {
 	glPopAttrib();
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	//glPushAttrib(GL_VIEWPORT_BIT);
-	//glViewport(0, 0, 1024, 768);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	bool old1new0 = 0;
 
-	if (old1new0 == 1) {
+	if (old1new0 == 1) { // Uses fixed pipeline
 		glUseProgram(0);
 		//drawTextureToFramebuffer(tex_background);
 		//drawTextureToFramebuffer(tex_depth);
 		drawTextureToFramebuffer(tex_rgb);
 	}
-	else {
-		rgb_img = glGetUniformLocation(varifocal_program, "rgb_img");
-		depth_map = glGetUniformLocation(varifocal_program, "depth_map");
-
+	else { // Uses shaders
 		glUseProgram(varifocal_program);
 
+		// Important that these two lines come after the glUseProgram() command
 		glUniform1i(rgb_img, 0);
 		glUniform1i(depth_map, 1);
+		glUniform1f(zFar_passToShader, zFar);
+		glUniform1f(zNear_passToShader, zNear);
+		glUniform1f(linear_near_uniformLocation, linear_near_value);
+		glUniform1f(linear_far_uniformLocation, linear_far_value);
 		glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, tex_rgb);
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glBindTexture(GL_TEXTURE_2D, tex_depth);
 
-		// Setting things back to default...
-		glActiveTexture(GL_TEXTURE0);
-
-		//glUniform1i(glGetUniformLocation(varifocal_program, "rgb_img"), 0);
-		//glUniform1i(glGetUniformLocation(varifocal_program, "depth_map"), 1);
-
 		glBindVertexArray(postprocess_VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glDisable(GL_TEXTURE_2D);
+		// Important to set default active texture back to GL_TEXTURE0
+		glActiveTexture(GL_TEXTURE0);
 	}
-	//glPopAttrib();
 
 	// swap buffers
 	glutSwapBuffers();
+}
+
+float modify_valuef(float value, float delta, float min_value, float max_value) {
+	value = value + delta;
+	if (value < min_value) {
+		value = min_value;
+	}
+
+	if (value > max_value) {
+		value = max_value;
+	}
+
+	return value;
 }
 
 // ------------------------------------------------------------
 //
 // Events from the Keyboard
 //
-
 float stepSize = 0.1;
-int keymapmode = 2;
+int keymapmode = 1;
 void processKeys(unsigned char key, int xx, int yy) {
 	if (key == 27) {
 		glutLeaveMainLoop();
@@ -1157,9 +1180,9 @@ void processKeys(unsigned char key, int xx, int yy) {
 		if (keymapmode == 1) {
 			/*
 			Remaining letters:
-			qwertyuiop
-			asdfghjkl
-			zxcvbnm
+			  e     op
+			      jkl
+			    b  
 			*/
 
 			switch (key) {
@@ -1176,6 +1199,12 @@ void processKeys(unsigned char key, int xx, int yy) {
 			case 'f': modify_current_fl(1, 0.1); break;
 			case 'c': modify_current_fl(4, -0.1); break;
 			case 'v': modify_current_fl(4, 0.1); break;
+			case 't': linear_near_value = modify_valuef(linear_near_value, -0.01, 0.0, linear_far_value); printf("linear_near_value: %f \n", linear_near_value);  break;
+			case 'y': linear_near_value = modify_valuef(linear_near_value,  0.01, 0.0, linear_far_value); printf("linear_near_value: %f \n", linear_near_value); break;
+			case 'g': linear_far_value = modify_valuef(linear_far_value, -0.01, linear_near_value, 1.0); printf("linear_far_value: %f \n", linear_far_value); break;
+			case 'h': linear_far_value = modify_valuef(linear_far_value,  0.01, linear_near_value, 1.0); printf("linear_far_value: %f \n", linear_far_value); break;
+			case 'u': zFar = modify_valuef(zFar, -0.1, 1.0, 20.0); printf("zFar: %f \n", zFar); break;
+			case 'i': zFar = modify_valuef(zFar, 0.1, 1.0, 200.0); printf("zFar: %f \n", zFar); break;
 			default: printf("Entered key does nothing \n");
 			}
 		}
@@ -1383,6 +1412,7 @@ void printProgramInfoLog(GLuint obj)
 	}
 }
 
+
 GLuint setupVarifocalShader() {
 	char *vs = NULL, *fs = NULL, *fs2 = NULL;
 
@@ -1414,9 +1444,7 @@ GLuint setupVarifocalShader() {
 
 	glBindAttribLocation(p, postprocess_vertexLoc, "position");
 	glBindAttribLocation(p, postprocess_textureLoc, "texCoord");
-
 	glBindFragDataLocation(p, 0, "FragColor");
-	//glBindAttribLocation(p, texCoordLoc, "texCoord");
 
 	glLinkProgram(p);
 	glValidateProgram(p);
@@ -1426,18 +1454,12 @@ GLuint setupVarifocalShader() {
 	varifocal_vertexShader = v;
 	varifocal_fragmentShader = f;
 
-	// DEBUG below lines don't seem to make a difference
-	// Got these lines of code from below function
-	//rgb_img = glGetUniformLocation(p, "rgb_img");
-	//depth_map = glGetUniformLocation(p, "depth_map");
-	//glProgramUniform1i(p, rgb_img, 0);
-	//glProgramUniform1i(p, depth_map, 1);
-
-	// DEBUG: Below lines don't seem to make a difference
-	// https://learnopengl.com/Getting-started/Textures
-	//glUseProgram(p);
-	//glUniform1i(glGetUniformLocation(varifocal_program, "rgb_img"), 0);
-	//glUniform1i(glGetUniformLocation(varifocal_program, "depth_map"), 1);
+	rgb_img = glGetUniformLocation(varifocal_program, "rgb_img");
+	depth_map = glGetUniformLocation(varifocal_program, "depth_map");
+	zNear_passToShader = glGetUniformLocation(varifocal_program, "zNear");
+	zFar_passToShader = glGetUniformLocation(varifocal_program, "zFar");
+	linear_near_uniformLocation = glGetUniformLocation(varifocal_program, "linear_near");
+	linear_far_uniformLocation = glGetUniformLocation(varifocal_program, "linear_far");
 
 	return(p);
 }

@@ -37,11 +37,6 @@ void main()
     color = texture(texUnit, TexCoord);
     amb = color * 0.23;
   }
-  // color = vec4(Depth);
-  // FragColor = (color);
   FragColor = (color * intensity) + amb;
-  // FragColor = vec4(Depth);
-  // gl_FragDepth = gl_FragCoord.z/gl_FragCoord.w;
-  // gl_FragDepth = (Depth - 20.0)/360.0;
-  // FragColor = amb;
+  gl_FragDepth = Depth;
 }

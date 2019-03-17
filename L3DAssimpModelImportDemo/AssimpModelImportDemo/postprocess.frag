@@ -7,11 +7,37 @@ in vec4 gl_FragCoord;
 
 uniform sampler2D rgb_img;
 uniform sampler2D depth_map;
+uniform float zNear;
+uniform float zFar;
+uniform float linear_near;
+uniform float linear_far;
 
 void main() {   
-	// 1st Backup code to verify things are working
-	//FragColor = texture(rgb_img, TexCoord);
-	//FragColor = texture(depth_map, TexCoord);
+	vec4 vec4_z_b = texture(depth_map, TexCoord);
+	float z_b = vec4_z_b[0];
+	float z_n = 2.0 * z_b - 1.0;
+	float z_e = 2.0 * zNear * zFar / (zFar + zNear - z_n *(zFar - zNear));
+	float normalized_linear_depth = z_e/zFar;
+	if(normalized_linear_depth < 0.5) {
+		FragColor = texture(rgb_img, TexCoord);
+	}
+	else {
+		//FragColor = texture(depth_map, TexCoord);
+		FragColor = vec4(normalized_linear_depth);
+	}
+	//-----------------------------------------------
+
+/*
+	// 3nd Backup code to verify things are working
+	vec4 depth;
+	depth = texture(depth_map, TexCoord);
+	if(depth[0] > 0.99) {
+		FragColor = texture(rgb_img, TexCoord);
+	}
+	else {
+		FragColor = texture(depth_map, TexCoord);
+	}
+*/
 
 	// 2nd Backup code to verify things are working
 	/*
@@ -25,12 +51,8 @@ void main() {
 	}
 	*/
 
-	vec4 depth;
-	depth = texture(depth_map, TexCoord);
-	if(depth[0] < 0.75) {
-		FragColor = texture(rgb_img, TexCoord);
-	}
-	else {
-		FragColor = texture(depth_map, TexCoord);
-	}
+
+	// 1st Backup code to verify things are working
+	//FragColor = texture(rgb_img, TexCoord);
+	//FragColor = texture(depth_map, TexCoord);
 }
