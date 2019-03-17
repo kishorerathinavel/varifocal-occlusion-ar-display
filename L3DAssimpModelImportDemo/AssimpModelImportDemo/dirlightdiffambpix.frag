@@ -9,6 +9,8 @@ layout (std140) uniform Material {
   int texCount;
 };
 
+out vec4 FragColor;
+
 uniform	sampler2D texUnit;
 
 in vec2 TexCoord;
@@ -36,10 +38,10 @@ void main()
     amb = color * 0.23;
   }
   // color = vec4(Depth);
-  // gl_FragColor = (color);
-  gl_FragColor = (color * intensity) + amb;
-  // gl_FragColor = vec4(Depth);
+  // FragColor = (color);
+  FragColor = (color * intensity) + amb;
+  // FragColor = vec4(Depth);
   // gl_FragDepth = gl_FragCoord.z/gl_FragCoord.w;
   // gl_FragDepth = (Depth - 20.0)/360.0;
-  // gl_FragColor = amb;
+  // FragColor = amb;
 }

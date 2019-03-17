@@ -87,6 +87,7 @@ std::vector<float *> matrixStack;
 
 // Vertex Attribute Locations
 GLuint vertexLoc = 0, normalLoc = 1, texCoordLoc = 2;
+GLuint postprocess_vertexLoc, postprocess_textureLoc;
 
 // Uniform Bindings Points
 GLuint matricesUniLoc = 1, materialUniLoc = 2;
@@ -94,7 +95,7 @@ GLuint matricesUniLoc = 1, materialUniLoc = 2;
 // The sampler uniform for textured models
 // we are assuming a single texture so this will
 //always be texture unit 0
-GLuint texUnit = 0, depth_map = 1;
+GLuint texUnit = 0, rgb_img = 1, depth_map = 2;
 
 // Uniform Buffer for Matrices
 // this buffer will contain 3 matrices: projection, view and model
@@ -109,11 +110,13 @@ GLuint matricesUniBuffer;
 
 // Program and Shader Identifiers
 GLuint program, vertexShader, fragmentShader;
-GLuint varifocal_program, varifocal_fragmentShader;
+GLuint varifocal_program, varifocal_vertexShader, varifocal_fragmentShader;
+	
 
 // Shader Names
 char *fname_vertex_shader = "dirlightdiffambpix.vert";
 char *fname_fragment_shader_rgb = "dirlightdiffambpix.frag";
+char *fname_varifocal_vertex_shader = "postprocess.vert";
 char *fname_varifocal_fragment_shader = "postprocess.frag";
 
 // Information to render each assimp node
@@ -163,11 +166,31 @@ int startX, startY, tracking = 0;
 float alpha = 0.0f, beta = 0.0f;
 float r = 1.2f;
 
-bool saveFramebufferOnce = false;
+bool saveFramebufferOnce = true;
 bool saveFramebufferUntilStop = false;
 
 GLuint rbo_depth_image, fbo_rgbd, tex_rgb, tex_depth;
-GLuint texBackground;
+GLuint tex_background;
+
+float postprocess_vertices[] ={
+	// positions     // texture coords
+	1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // top right
+	1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom right
+	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, // bottom left
+	0.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left 
+};
+//float postprocess_vertices[] ={
+//	// positions     // texture coords
+//	1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // top right
+//	1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+//	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // bottom left
+//	-1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left 
+//};
+unsigned int postprocess_indices[] ={
+	0, 1, 3, // first triangle
+	1, 2, 3  // second triangle
+};
+unsigned int postprocess_VBO, postprocess_VAO, postprocess_EBO;
 
 
 #define M_PI       3.14159265358979323846f
@@ -345,12 +368,9 @@ void setRotationMatrix(float *mat, float angle, float x, float y, float z) {
 
 
 void setModelMatrix() {
-
 	glBindBuffer(GL_UNIFORM_BUFFER, matricesUniBuffer);
-	glBufferSubData(GL_UNIFORM_BUFFER,
-		ModelMatrixOffset, MatrixSize, modelMatrix);
+	glBufferSubData(GL_UNIFORM_BUFFER, ModelMatrixOffset, MatrixSize, modelMatrix);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
 }
 
 // The equivalent to glTranslate applied to the model matrix
@@ -650,6 +670,28 @@ void color4_to_float4(const aiColor4D *c, float f[4])
 	f[3] = c->a;
 }
 
+void genVAOs_postprocess() {
+	glGenVertexArrays(1, &postprocess_VAO);
+	glGenBuffers(1, &postprocess_VBO);
+	glGenBuffers(1, &postprocess_EBO);
+
+	glBindVertexArray(postprocess_VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, postprocess_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(postprocess_vertices), postprocess_vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, postprocess_EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(postprocess_indices), postprocess_indices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(postprocess_vertexLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(postprocess_vertexLoc);
+	// texture coord attribute
+	glVertexAttribPointer(postprocess_textureLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(postprocess_textureLoc);
+}
+
+
 void genVAOsAndUniformBuffer(Model& model) {
 
 	struct MyMesh aMesh;
@@ -791,7 +833,7 @@ void changeSize(int w, int h) {
 	glViewport(0, 0, w, h);
 
 	ratio = (1.0f * w) / h;
-	buildProjectionMatrix(35.0f, ratio, 0.01f, 10.0f);
+	buildProjectionMatrix(35.0f, ratio, 0.01f, 100.0f);
 }
 
 
@@ -1027,7 +1069,7 @@ void renderScene() {
 	// we are only going to use texture unit 0
 	// unfortunately samplers can't reside in uniform blocks
 	// so we have set this uniform separately
-	//glUniform1i(texUnit, texBackground);
+	//glUniform1i(texUnit, tex_background);
 
 	drawModels();
 
@@ -1051,13 +1093,45 @@ void renderScene() {
 	}
 
 	glPopAttrib();
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glUseProgram(varifocal_program);
-	glUniform1i(depth_map, tex_depth);
-	glViewport(0, 0, 1024, 768);
+	//glPushAttrib(GL_VIEWPORT_BIT);
+	//glViewport(0, 0, 1024, 768);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	//drawTextureToFramebuffer(tex_depth);
-	drawTextureToFramebuffer(tex_rgb);
+
+	bool old1new0 = 0;
+
+	if (old1new0 == 1) {
+		glUseProgram(0);
+		//drawTextureToFramebuffer(tex_background);
+		//drawTextureToFramebuffer(tex_depth);
+		drawTextureToFramebuffer(tex_rgb);
+	}
+	else {
+		rgb_img = glGetUniformLocation(varifocal_program, "rgb_img");
+		depth_map = glGetUniformLocation(varifocal_program, "depth_map");
+
+		glUseProgram(varifocal_program);
+
+		glUniform1i(rgb_img, 0);
+		glUniform1i(depth_map, 1);
+		glEnable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE0 + 0);
+		glBindTexture(GL_TEXTURE_2D, tex_rgb);
+		glActiveTexture(GL_TEXTURE0 + 1);
+		glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+		// Setting things back to default...
+		glActiveTexture(GL_TEXTURE0);
+
+		//glUniform1i(glGetUniformLocation(varifocal_program, "rgb_img"), 0);
+		//glUniform1i(glGetUniformLocation(varifocal_program, "depth_map"), 1);
+
+		glBindVertexArray(postprocess_VAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glDisable(GL_TEXTURE_2D);
+	}
+	//glPopAttrib();
 
 	// swap buffers
 	glutSwapBuffers();
@@ -1069,7 +1143,7 @@ void renderScene() {
 //
 
 float stepSize = 0.1;
-int keymapmode = 1;
+int keymapmode = 2;
 void processKeys(unsigned char key, int xx, int yy) {
 	if (key == 27) {
 		glutLeaveMainLoop();
@@ -1309,79 +1383,39 @@ void printProgramInfoLog(GLuint obj)
 	}
 }
 
-//GLuint setupVarifocalShader() {
-//
-//	char *vs = NULL, *fs = NULL, *fs2 = NULL;
-//
-//	GLuint p, v, f;
-//
-//	v = glCreateShader(GL_VERTEX_SHADER);
-//	f = glCreateShader(GL_FRAGMENT_SHADER);
-//
-//	vs = textFileRead(fname_vertex_shader);
-//	fs = textFileRead(fname_fragment_shader_rgb);
-//
-//	const char * vv = vs;
-//	const char * ff = fs;
-//
-//	glShaderSource(v, 1, &vv, NULL);
-//	glShaderSource(f, 1, &ff, NULL);
-//
-//	free(vs); free(fs);
-//
-//	glCompileShader(v);
-//	glCompileShader(f);
-//
-//	printShaderInfoLog(v);
-//	printShaderInfoLog(f);
-//
-//	p = glCreateProgram();
-//	glAttachShader(p, v);
-//	glAttachShader(p, f);
-//
-////	glBindFragDataLocation(p, 0, "output");
-//
-//	glBindAttribLocation(p, vertexLoc, "position");
-//	glBindAttribLocation(p, normalLoc, "normal");
-//	glBindAttribLocation(p, texCoordLoc, "texCoord");
-//
-//	glLinkProgram(p);
-//	glValidateProgram(p);
-//	printProgramInfoLog(p);
-//
-//	program = p;
-//	vertexShader = v;
-//	fragmentShader = f;
-//
-//	GLuint k = glGetUniformBlockIndex(p, "Matrices");
-//	glUniformBlockBinding(p, k, matricesUniLoc);
-//	glUniformBlockBinding(p, glGetUniformBlockIndex(p, "Material"), materialUniLoc);
-//
-//	texUnit = glGetUniformLocation(p, "texUnit");
-//
-//	return(p);
-//}
 GLuint setupVarifocalShader() {
-	char *fs = NULL, *fs2 = NULL;
-	GLuint p, f;
+	char *vs = NULL, *fs = NULL, *fs2 = NULL;
 
+	GLuint p, v, f;
+
+	v = glCreateShader(GL_VERTEX_SHADER);
 	f = glCreateShader(GL_FRAGMENT_SHADER);
+
+	vs = textFileRead(fname_varifocal_vertex_shader);
 	fs = textFileRead(fname_varifocal_fragment_shader);
 
+	const char * vv = vs;
 	const char * ff = fs;
 
+	glShaderSource(v, 1, &vv, NULL);
 	glShaderSource(f, 1, &ff, NULL);
 
-	free(fs);
+	free(vs); free(fs);
 
+	glCompileShader(v);
 	glCompileShader(f);
 
 	printShaderInfoLog(f);
-
+	printShaderInfoLog(v);
+	
 	p = glCreateProgram();
+	glAttachShader(p, v);
 	glAttachShader(p, f);
 
-	//glBindFragDataLocation(p, 0, "output");
+	glBindAttribLocation(p, postprocess_vertexLoc, "position");
+	glBindAttribLocation(p, postprocess_textureLoc, "texCoord");
+
+	glBindFragDataLocation(p, 0, "FragColor");
 	//glBindAttribLocation(p, texCoordLoc, "texCoord");
 
 	glLinkProgram(p);
@@ -1389,9 +1423,22 @@ GLuint setupVarifocalShader() {
 	printProgramInfoLog(p);
 
 	varifocal_program = p;
+	varifocal_vertexShader = v;
 	varifocal_fragmentShader = f;
 
-	texUnit = glGetUniformLocation(p, "depth_map");
+	// DEBUG below lines don't seem to make a difference
+	// Got these lines of code from below function
+	//rgb_img = glGetUniformLocation(p, "rgb_img");
+	//depth_map = glGetUniformLocation(p, "depth_map");
+	//glProgramUniform1i(p, rgb_img, 0);
+	//glProgramUniform1i(p, depth_map, 1);
+
+	// DEBUG: Below lines don't seem to make a difference
+	// https://learnopengl.com/Getting-started/Textures
+	//glUseProgram(p);
+	//glUniform1i(glGetUniformLocation(varifocal_program, "rgb_img"), 0);
+	//glUniform1i(glGetUniformLocation(varifocal_program, "depth_map"), 1);
+
 	return(p);
 }
 
@@ -1425,7 +1472,7 @@ GLuint setupShader() {
 	glAttachShader(p, v);
 	glAttachShader(p, f);
 
-//	glBindFragDataLocation(p, 0, "output");
+	glBindFragDataLocation(p, 0, "FragColor");
 
 	glBindAttribLocation(p, vertexLoc, "position");
 	glBindAttribLocation(p, normalLoc, "normal");
@@ -1518,21 +1565,23 @@ int init()
 	glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)glutGetProcAddress("glDeleteVertexArrays");
 
 	program = setupShader();
-	varifocal_program = setupVarifocalShader();
 
 	for (int modelIter = 0; modelIter < NUM_MODELS; modelIter++) {
 		genVAOsAndUniformBuffer(model[modelIter]);
 	}
 
+	varifocal_program = setupVarifocalShader();
+	genVAOs_postprocess();
+
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 
 	char fileName[1024] = "background.png";
-	glGenTextures(1, &texBackground);
-	glBindTexture(GL_TEXTURE_2D, texBackground);
+	glGenTextures(1, &tex_background);
+	glBindTexture(GL_TEXTURE_2D, tex_background);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	loadTexture(fileName, texBackground);
+	loadTexture(fileName, tex_background);
 
 	//
 	// Uniform Block
