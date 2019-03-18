@@ -19,11 +19,20 @@ void main() {
 	float z_n = 2.0 * z_b - 1.0;
 	float z_e = 2.0 * zNear * zFar / (zFar + zNear - z_n *(zFar - zNear));
 	float normalized_linear_depth = z_e/zFar;
+	//float normalized_linear_depth = z_e;
 
-	float depth_disparity = normalized_linear_depth - focal_depth;
+	float depth_disparity;
+	if (z_b == 1.0) {
+	  depth_disparity = 1.0;
+	}
+	else {
+	  depth_disparity = normalized_linear_depth - focal_depth;
+	}
+
 	if(depth_disparity < 0.0) {
 		depth_disparity = -1.0*depth_disparity;
 	}
+
 	FragColor = vec4(depth_disparity);
 	//-----------------------------------------------
 

@@ -85,14 +85,13 @@ float modelMatrix[16];
 // For push and pop matrix
 std::vector<float *> matrixStack;
 
-float zNear = 0.01, zFar = 10.0;
+float zNear = 0.01, zFar = 2.4;
 
 // For Program 1 ======================================
 GLuint rbo_depth_image, fbo_rgbd, tex_rgb, tex_depth;
 
 // Vertex Attribute Locations
 GLuint vertexLoc = 0, normalLoc = 1, texCoordLoc = 2;
-GLuint postprocess_vertexLoc, postprocess_textureLoc;
 
 // Uniform Bindings Points
 GLuint matricesUniLoc = 1, materialUniLoc = 2;
@@ -120,27 +119,48 @@ char *fname_vertex_shader = "dirlightdiffambpix.vert";
 char *fname_fragment_shader_rgb = "dirlightdiffambpix.frag";
 // For Program 1 ======================================
 
-
 // For Program 2 =====================================
-GLuint fbo_blur, tex_blur_rgb;
+GLuint fbo_blurmap_rgb, tex_blurmap_rgb;
+
+// Vertex Attribute Locations
+GLuint blurmap_vertexLoc, blurmap_textureLoc;
 
 // Sampler Uniform
-GLuint rgb_img, depth_map;
-GLuint zNear_passToShader, zFar_passToShader;
-GLuint linear_near_uniformLocation, linear_far_uniformLocation;
-GLuint focal_depth_uniformLocation;
+GLuint blurmap_rgb_img, blurmap_depth_map;
+
+// Float Uniforms
+GLuint blurmap_zNear_uniformLocation, blurmap_zFar_uniformLocation;
+GLuint blurmap_linear_near_uniformLocation, blurmap_linear_far_uniformLocation;
+GLuint blurmap_focal_depth_uniformLocation;
 
 // Program and Shader Identifiers
-GLuint varifocal_program, varifocal_vertexShader, varifocal_fragmentShader;
+GLuint blurmap_program, blurmap_vertexShader, blurmap_fragmentShader;
 
 // Shader Names
-char *fname_varifocal_vertex_shader = "postprocess.vert";
-char *fname_varifocal_fragment_shader = "postprocess.frag";
+char *fname_blurmap_vertex_shader = "blurmap.vert";
+char *fname_blurmap_fragment_shader = "blurmap.frag";
 
+// Values to pass in
 float linear_near_value = 0.0, linear_far_value = 1.0;
 float focal_depth_value = 0.5;
 // For Program 2 =====================================
 
+// For Program 3 =====================================
+GLuint blur_zNear_uniformLocation, blur_zFar_uniformLocation;
+GLuint fbo_blur_rgb, tex_blur_rgb;
+
+// Vertex Attribute Locations
+GLuint blur_vertexLoc, blur_textureLoc;
+
+// Sampler Uniform
+GLuint blur_rgb_img, blur_blur_map, blur_depth_map;
+
+// Program and Shader Identifiers
+GLuint blur_program, blur_vertexShader, blur_fragmentShader;
+
+// Shader Names
+char *fname_blur_fragment_shader = "blur.frag";
+// For Program 3 =====================================
 
 // Information to render each assimp node
 struct MyMesh {
@@ -692,7 +712,7 @@ void color4_to_float4(const aiColor4D *c, float f[4])
 	f[3] = c->a;
 }
 
-void genVAOs_postprocess() {
+void genVAOs_blurmap() {
 	glGenVertexArrays(1, &postprocess_VAO);
 	glGenBuffers(1, &postprocess_VBO);
 	glGenBuffers(1, &postprocess_EBO);
@@ -706,11 +726,32 @@ void genVAOs_postprocess() {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(postprocess_indices), postprocess_indices, GL_STATIC_DRAW);
 
 	// position attribute
-	glVertexAttribPointer(postprocess_vertexLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(postprocess_vertexLoc);
+	glVertexAttribPointer(blurmap_vertexLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(blurmap_vertexLoc);
 	// texture coord attribute
-	glVertexAttribPointer(postprocess_textureLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(postprocess_textureLoc);
+	glVertexAttribPointer(blurmap_textureLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(blurmap_textureLoc);
+}
+
+void genVAOs_blur() {
+	glGenVertexArrays(1, &postprocess_VAO);
+	glGenBuffers(1, &postprocess_VBO);
+	glGenBuffers(1, &postprocess_EBO);
+
+	glBindVertexArray(postprocess_VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, postprocess_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(postprocess_vertices), postprocess_vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, postprocess_EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(postprocess_indices), postprocess_indices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(blur_vertexLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(blur_vertexLoc);
+	// texture coord attribute
+	glVertexAttribPointer(blur_textureLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(blur_textureLoc);
 }
 
 
@@ -854,6 +895,7 @@ void changeSize(int w, int h) {
 	glViewport(0, 0, w, h);
 
 	ratio = (1.0f * w) / h;
+	buildProjectionMatrix(35.0f, ratio, zNear, zFar);
 }
 
 
@@ -879,7 +921,6 @@ void recursive_render(Model& model, const aiNode* nd)
 	memcpy(aux, &m, sizeof(float) * 16);
 	multMatrix(modelMatrix, aux);
 	setModelMatrix();
-	buildProjectionMatrix(35.0f, ratio, zNear, zFar);
 
 
 	// draw all meshes assigned to this node
@@ -1039,8 +1080,6 @@ void usePosition() {
 			alpha = y;
 			beta = z;
          }
-
-		
 	}
 	fclose(fp);
 	currModel = &model[0];
@@ -1082,8 +1121,8 @@ void renderScene() {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// set camera matrix
 	setCamera(camX, camY, camZ, 0, 0, 0);
+	buildProjectionMatrix(35.0f, ratio, zNear, zFar);
 
 	glUseProgram(program);
 	// we are only going to use texture unit 0
@@ -1105,37 +1144,35 @@ void renderScene() {
 	frame++;
 	time_fps = glutGet(GLUT_ELAPSED_TIME);
 	if (time_fps - timebase > 1000) {
-		sprintf(s, "FPS:%4.2f",
-			frame*1000.0 / (time_fps - timebase));
+		sprintf(s, "FPS: %4.2f %d", frame*1000.0 / (time_fps - timebase), frame);
 		timebase = time_fps;
 		frame = 0;
 		glutSetWindowTitle(s);
 	}
-
 	glPopAttrib();
-	
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo_blurmap_rgb);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	bool old1new0 = 0;
-
 	if (old1new0 == 1) { // Uses fixed pipeline
 		glUseProgram(0);
 		//drawTextureToFramebuffer(tex_background);
-		//drawTextureToFramebuffer(tex_depth);
-		drawTextureToFramebuffer(tex_rgb);
+		drawTextureToFramebuffer(tex_depth);
+		//drawTextureToFramebuffer(tex_rgb);
 	}
 	else { // Uses shaders
-		glUseProgram(varifocal_program);
+		glUseProgram(blurmap_program);
 
 		// Important that these two lines come after the glUseProgram() command
-		glUniform1i(rgb_img, 0);
-		glUniform1i(depth_map, 1);
-		glUniform1f(zFar_passToShader, zFar);
-		glUniform1f(zNear_passToShader, zNear);
-		glUniform1f(linear_near_uniformLocation, linear_near_value);
-		glUniform1f(linear_far_uniformLocation, linear_far_value);
-		glUniform1f(focal_depth_uniformLocation, focal_depth_value);
+		glUniform1i(blurmap_rgb_img, 0);
+		glUniform1i(blurmap_depth_map, 1);
+		glUniform1f(blurmap_zFar_uniformLocation, zFar);
+		glUniform1f(blurmap_zNear_uniformLocation, zNear);
+		glUniform1f(blurmap_linear_near_uniformLocation, linear_near_value);
+		glUniform1f(blurmap_linear_far_uniformLocation, linear_far_value);
+		glUniform1f(blurmap_focal_depth_uniformLocation, focal_depth_value);
 		glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, tex_rgb);
@@ -1148,6 +1185,51 @@ void renderScene() {
 		// Important to set default active texture back to GL_TEXTURE0
 		glActiveTexture(GL_TEXTURE0);
 	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glPushAttrib(GL_VIEWPORT_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, 512, 384);
+
+	old1new0 = 0;
+	if (old1new0 == 1) { // Uses fixed pipeline
+		glUseProgram(0);
+		drawTextureToFramebuffer(tex_blurmap_rgb);
+	}
+	else { // Uses shaders
+		glUseProgram(blur_program);
+
+		// Important that these two lines come after the glUseProgram() command
+		glUniform1i(blur_rgb_img, 0);
+		glUniform1i(blur_blur_map, 1);
+		glUniform1i(blur_depth_map, 2);
+		glUniform1f(blur_zFar_uniformLocation, zFar);
+		glEnable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE0 + 0);
+		glBindTexture(GL_TEXTURE_2D, tex_rgb);
+		glActiveTexture(GL_TEXTURE0 + 1);
+		glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
+		glActiveTexture(GL_TEXTURE0 + 2);
+		glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+		glBindVertexArray(postprocess_VAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glDisable(GL_TEXTURE_2D);
+		// Important to set default active texture back to GL_TEXTURE0
+		glActiveTexture(GL_TEXTURE0);
+	}
+
+	glUseProgram(0);
+	glViewport(512, 0, 512, 384);
+	drawTextureToFramebuffer(tex_blurmap_rgb);
+
+	glViewport(0, 384, 512, 384);
+	drawTextureToFramebuffer(tex_depth);
+
+	glViewport(512, 384, 512, 384);
+	drawTextureToFramebuffer(tex_rgb);
+
+	glPopAttrib();
 
 	// swap buffers
 	glutSwapBuffers();
@@ -1164,6 +1246,16 @@ float modify_valuef(float value, float delta, float min_value, float max_value) 
 	}
 
 	return value;
+}
+
+void updateCamVariables() {
+	camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
+	camY = r *   						     sin(beta * 3.14f / 180.0f);
+
+	// set camera matrix
+	setCamera(camX, camY, camZ, 0, 0, 0);
+
 }
 
 // ------------------------------------------------------------
@@ -1210,8 +1302,8 @@ void processKeys(unsigned char key, int xx, int yy) {
 			case 'h': linear_far_value = modify_valuef(linear_far_value,  0.01, linear_near_value, 1.0); printf("linear_far_value: %f \n", linear_far_value); break;
 			case 'j': focal_depth_value = modify_valuef(focal_depth_value, -0.01, 0.0, 1.0); printf("focal_depth_value: %f \n", focal_depth_value); break;
 			case 'k': focal_depth_value = modify_valuef(focal_depth_value, 0.01, 0.0, 1.0); printf("focal_depth_value: %f \n", focal_depth_value); break;
-			case 'u': zFar = modify_valuef(zFar, -0.1, 1.0, 20.0); printf("zFar: %f \n", zFar); break;
-			case 'i': zFar = modify_valuef(zFar, 0.1, 1.0, 200.0); printf("zFar: %f \n", zFar); break;
+			case 'u': zFar = modify_valuef(zFar, -0.1, zNear, 200.0); printf("zFar: %f \n", zFar); break;
+			case 'i': zFar = modify_valuef(zFar, 0.1, zNear, 200.0); printf("zFar: %f \n", zFar); break;
 			default: printf("Entered key does nothing \n");
 			}
 		}
@@ -1278,9 +1370,7 @@ void processKeys(unsigned char key, int xx, int yy) {
 			case 'u': usePosition(); break;
 			default: printf("Entered key does nothing \n");
 			}
-			camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-			camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-			camY = r *   						     sin(beta * 3.14f / 180.0f);
+			updateCamVariables();
 		}
 	}
 
@@ -1320,7 +1410,6 @@ void processMouseButtons(int button, int state, int xx, int yy)
 }
 
 // Track mouse motion while buttons are pressed
-
 void processMouseMotion(int xx, int yy)
 {
 
@@ -1333,8 +1422,6 @@ void processMouseMotion(int xx, int yy)
 
 	// left mouse button: move camera
 	if (tracking == 1) {
-
-
 		alphaAux = alpha + deltaX;
 		betaAux = beta + deltaY;
 
@@ -1342,7 +1429,6 @@ void processMouseMotion(int xx, int yy)
 			betaAux = 85.0f;
 		else if (betaAux < -85.0f)
 			betaAux = -85.0f;
-
 		rAux = r;
 
 		camX = rAux * cos(betaAux * 3.14f / 180.0f) * sin(alphaAux * 3.14f / 180.0f);
@@ -1360,27 +1446,14 @@ void processMouseMotion(int xx, int yy)
 		camZ = rAux * cos(betaAux * 3.14f / 180.0f) * cos(alphaAux * 3.14f / 180.0f);
 		camY = rAux * sin(betaAux * 3.14f / 180.0f);
 	}
-
-
 	//  uncomment this if not using an idle func
 	//	glutPostRedisplay();
 }
 
-
-
-
 void mouseWheel(int wheel, int direction, int x, int y) {
-
 	r += direction * 0.1f;
-	camX = r * sin(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-	camZ = r * cos(alpha * 3.14f / 180.0f) * cos(beta * 3.14f / 180.0f);
-	camY = r *   						     sin(beta * 3.14f / 180.0f);
+	updateCamVariables();
 }
-
-
-
-
-
 
 // --------------------------------------------------------
 //
@@ -1423,7 +1496,7 @@ void printProgramInfoLog(GLuint obj)
 }
 
 
-GLuint setupVarifocalShader() {
+GLuint setupBlurShader() {
 	char *vs = NULL, *fs = NULL, *fs2 = NULL;
 
 	GLuint p, v, f;
@@ -1431,8 +1504,8 @@ GLuint setupVarifocalShader() {
 	v = glCreateShader(GL_VERTEX_SHADER);
 	f = glCreateShader(GL_FRAGMENT_SHADER);
 
-	vs = textFileRead(fname_varifocal_vertex_shader);
-	fs = textFileRead(fname_varifocal_fragment_shader);
+	vs = textFileRead(fname_blurmap_vertex_shader);
+	fs = textFileRead(fname_blur_fragment_shader);
 
 	const char * vv = vs;
 	const char * ff = fs;
@@ -1452,25 +1525,74 @@ GLuint setupVarifocalShader() {
 	glAttachShader(p, v);
 	glAttachShader(p, f);
 
-	glBindAttribLocation(p, postprocess_vertexLoc, "position");
-	glBindAttribLocation(p, postprocess_textureLoc, "texCoord");
+	glBindAttribLocation(p, blur_vertexLoc, "position");
+	glBindAttribLocation(p, blur_textureLoc, "texCoord");
 	glBindFragDataLocation(p, 0, "FragColor");
 
 	glLinkProgram(p);
 	glValidateProgram(p);
 	printProgramInfoLog(p);
 
-	varifocal_program = p;
-	varifocal_vertexShader = v;
-	varifocal_fragmentShader = f;
+	blur_program = p;
+	blur_vertexShader = v;
+	blur_fragmentShader = f;
 
-	rgb_img = glGetUniformLocation(varifocal_program, "rgb_img");
-	depth_map = glGetUniformLocation(varifocal_program, "depth_map");
-	zNear_passToShader = glGetUniformLocation(varifocal_program, "zNear");
-	zFar_passToShader = glGetUniformLocation(varifocal_program, "zFar");
-	linear_near_uniformLocation = glGetUniformLocation(varifocal_program, "linear_near");
-	linear_far_uniformLocation = glGetUniformLocation(varifocal_program, "linear_far");
-	focal_depth_uniformLocation = glGetUniformLocation(varifocal_program, "focal_depth");
+	blur_rgb_img = glGetUniformLocation(blur_program, "rgb_img");
+	blur_blur_map = glGetUniformLocation(blur_program, "blur_map");
+	blur_depth_map = glGetUniformLocation(blur_program, "depth_map");
+	blur_zFar_uniformLocation = glGetUniformLocation(blur_program, "zFar");
+
+	return(p);
+}
+
+GLuint setupBlurmapShader() {
+	char *vs = NULL, *fs = NULL, *fs2 = NULL;
+
+	GLuint p, v, f;
+
+	v = glCreateShader(GL_VERTEX_SHADER);
+	f = glCreateShader(GL_FRAGMENT_SHADER);
+
+	vs = textFileRead(fname_blurmap_vertex_shader);
+	fs = textFileRead(fname_blurmap_fragment_shader);
+
+	const char * vv = vs;
+	const char * ff = fs;
+
+	glShaderSource(v, 1, &vv, NULL);
+	glShaderSource(f, 1, &ff, NULL);
+
+	free(vs); free(fs);
+
+	glCompileShader(v);
+	glCompileShader(f);
+
+	printShaderInfoLog(f);
+	printShaderInfoLog(v);
+	
+	p = glCreateProgram();
+	glAttachShader(p, v);
+	glAttachShader(p, f);
+
+	glBindAttribLocation(p, blurmap_vertexLoc, "position");
+	glBindAttribLocation(p, blurmap_textureLoc, "texCoord");
+	glBindFragDataLocation(p, 0, "FragColor");
+
+	glLinkProgram(p);
+	glValidateProgram(p);
+	printProgramInfoLog(p);
+
+	blurmap_program = p;
+	blurmap_vertexShader = v;
+	blurmap_fragmentShader = f;
+
+	blurmap_rgb_img = glGetUniformLocation(blurmap_program, "rgb_img");
+	blurmap_depth_map = glGetUniformLocation(blurmap_program, "depth_map");
+	blurmap_zNear_uniformLocation = glGetUniformLocation(blurmap_program, "zNear");
+	blurmap_zFar_uniformLocation = glGetUniformLocation(blurmap_program, "zFar");
+	blurmap_linear_near_uniformLocation = glGetUniformLocation(blurmap_program, "linear_near");
+	blurmap_linear_far_uniformLocation = glGetUniformLocation(blurmap_program, "linear_far");
+	blurmap_focal_depth_uniformLocation = glGetUniformLocation(blurmap_program, "focal_depth");
 
 	return(p);
 }
@@ -1603,11 +1725,8 @@ int init()
 		genVAOsAndUniformBuffer(model[modelIter]);
 	}
 
-	varifocal_program = setupVarifocalShader();
-	genVAOs_postprocess();
-
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	char fileName[1024] = "background.png";
 	glGenTextures(1, &tex_background);
@@ -1656,8 +1775,32 @@ int init()
 		printf("Error in creating framebuffer \n");
 	}
 
+	blurmap_program = setupBlurmapShader();
+	genVAOs_blurmap();
+
+	glGenTextures(1, &tex_blurmap_rgb);
+	glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 768, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenFramebuffers(1, &fbo_blurmap_rgb);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo_blurmap_rgb);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_blurmap_rgb, 0);
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		printf("Error in creating framebuffer \n");
+	}
+
+	blur_program = setupBlurShader();
+	genVAOs_blur();
+
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
 
 	//glEnable(GL_LIGHT0);
 	//glEnable(GL_NORMALIZE);
@@ -1739,6 +1882,8 @@ int main(int argc, char **argv) {
 	// return from main loop
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
+	usePosition();
+	updateCamVariables();
 	//  GLUT main loop
 	glutMainLoop();
 
@@ -1746,7 +1891,6 @@ int main(int argc, char **argv) {
 	glDeleteBuffers(1, &matricesUniBuffer);
 	glDeleteRenderbuffers(1, &rbo_depth_image);
 	glDeleteFramebuffers(1, &fbo_rgbd);
-
 	return(0);
 }
 
