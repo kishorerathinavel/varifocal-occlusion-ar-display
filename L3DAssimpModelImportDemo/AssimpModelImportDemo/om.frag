@@ -36,7 +36,6 @@ void main() {
   float centerFrag_depth = v4_centerFrag_depth[0];
 
   vec4 contributionFromAdjFrag = vec4(0.0);
-  float weight = 0.0;
   for (int iterX = -10; iterX < 11; iterX = iterX + 1) {
     for (int iterY = -10; iterY < 11; iterY = iterY + 1) {
       if(iterX == 0 && iterY == 0) {
@@ -45,25 +44,20 @@ void main() {
 	vec2 adjTexCoord = vec2(TexCoord.x + 10.0*float(iterX)/maxX, TexCoord.y + 10.0*float(iterY)/maxY);
 	vec4 v4_adjFrag_depth = texture(depth_map, adjTexCoord);
 	float adjFrag_depth = v4_adjFrag_depth[0];
-	if((adjFrag_depth == 1.0) || adjFrag_depth - centerFrag_depth > 0.01) {
+	if((adjFrag_depth == 1.0) || (adjFrag_depth - centerFrag_depth > 0.01)) {
 	  continue;
 	}
 	else {
-	  vec4 v4_adjFrag_rgb = texture(rgb_img, adjTexCoord);
 	  vec4 v4_adjFrag_blur = vec4(convertDisaprityToBlur(texture(blur_map, adjTexCoord)));
-	  float adjFrag_blur = v4_adjFrag_blur[0];
-					
-	  //contributionFromAdjFrag = contributionFromAdjFrag + (adjFrag_blur/441.0)*((10.0/1024.0)/distance)*v4_adjFrag_rgb;
-	  contributionFromAdjFrag = contributionFromAdjFrag + adjFrag_blur*v4_adjFrag_rgb;
+	  contributionFromAdjFrag = contributionFromAdjFrag + v4_adjFrag_blur;
 	} 
       }
     }
   }
-
-  FragColor = (1.0 - centerFrag_blur)*v4_centerFrag_rgb + contributionFromAdjFrag/(20.0*20.0);
+  FragColor = (vec4(1.0 - centerFrag_blur) + contributionFromAdjFrag/(20.0*20.0));
   // if(TexCoord.x < 0.5) {
-  //   FragColor = (1.0 - centerFrag_blur)*v4_centerFrag_rgb;
+  //   FragColor = vec4(1.0 - centerFrag_blur);
   // } else {
-  //   FragColor = contributionFromAdjFrag/(20.0*20.0);
+  //   FragColor = contributionFromAdjFrag/(40.0*40.0);
   // }
 }

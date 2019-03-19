@@ -162,6 +162,25 @@ GLuint blur_program, blur_vertexShader, blur_fragmentShader;
 char *fname_blur_fragment_shader = "blur.frag";
 // For Program 3 =====================================
 
+// For Program 3 =====================================
+GLuint om_zNear_uniformLocation, om_zFar_uniformLocation;
+GLuint fbo_om_rgb, tex_om_rgb;
+
+// Vertex Attribute Locations
+GLuint om_vertexLoc, om_textureLoc;
+
+// Sampler Uniform
+GLuint om_rgb_img, om_blur_map, om_depth_map;
+
+// Program and Shader Identifiers
+GLuint om_program, om_vertexShader, om_fragmentShader;
+
+// Shader Names
+char *fname_om_fragment_shader = "om.frag";
+// For Program 3 =====================================
+
+
+
 // Information to render each assimp node
 struct MyMesh {
 	GLuint vao;
@@ -733,6 +752,27 @@ void genVAOs_blurmap() {
 	glEnableVertexAttribArray(blurmap_textureLoc);
 }
 
+void genVAOs_om() {
+	glGenVertexArrays(1, &postprocess_VAO);
+	glGenBuffers(1, &postprocess_VBO);
+	glGenBuffers(1, &postprocess_EBO);
+
+	glBindVertexArray(postprocess_VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, postprocess_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(postprocess_vertices), postprocess_vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, postprocess_EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(postprocess_indices), postprocess_indices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(om_vertexLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(om_vertexLoc);
+	// texture coord attribute
+	glVertexAttribPointer(om_textureLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(om_textureLoc);
+}
+
 void genVAOs_blur() {
 	glGenVertexArrays(1, &postprocess_VAO);
 	glGenBuffers(1, &postprocess_VBO);
@@ -1219,12 +1259,39 @@ void renderScene() {
 		glActiveTexture(GL_TEXTURE0);
 	}
 
+	glViewport(0, 384, 512, 384);
+	old1new0 = 0;
+	if (old1new0 == 1) { // Uses fixed pipeline
+		glUseProgram(0);
+		drawTextureToFramebuffer(tex_depth);
+	}
+	else { // Uses shaders
+		glUseProgram(om_program);
+
+		// Important that these two lines come after the glUseProgram() command
+		glUniform1i(om_rgb_img, 0);
+		glUniform1i(om_blur_map, 1);
+		glUniform1i(om_depth_map, 2);
+		glUniform1f(om_zFar_uniformLocation, zFar);
+		glEnable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE0 + 0);
+		glBindTexture(GL_TEXTURE_2D, tex_rgb);
+		glActiveTexture(GL_TEXTURE0 + 1);
+		glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
+		glActiveTexture(GL_TEXTURE0 + 2);
+		glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+		glBindVertexArray(postprocess_VAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glDisable(GL_TEXTURE_2D);
+		// Important to set default active texture back to GL_TEXTURE0
+		glActiveTexture(GL_TEXTURE0);
+	}
+
+
 	glUseProgram(0);
 	glViewport(512, 0, 512, 384);
 	drawTextureToFramebuffer(tex_blurmap_rgb);
-
-	glViewport(0, 384, 512, 384);
-	drawTextureToFramebuffer(tex_depth);
 
 	glViewport(512, 384, 512, 384);
 	drawTextureToFramebuffer(tex_rgb);
@@ -1495,6 +1562,54 @@ void printProgramInfoLog(GLuint obj)
 	}
 }
 
+GLuint setupOmShader() {
+	char *vs = NULL, *fs = NULL, *fs2 = NULL;
+
+	GLuint p, v, f;
+
+	v = glCreateShader(GL_VERTEX_SHADER);
+	f = glCreateShader(GL_FRAGMENT_SHADER);
+
+	vs = textFileRead(fname_blurmap_vertex_shader);
+	fs = textFileRead(fname_om_fragment_shader);
+
+	const char * vv = vs;
+	const char * ff = fs;
+
+	glShaderSource(v, 1, &vv, NULL);
+	glShaderSource(f, 1, &ff, NULL);
+
+	free(vs); free(fs);
+
+	glCompileShader(v);
+	glCompileShader(f);
+
+	printShaderInfoLog(f);
+	printShaderInfoLog(v);
+	
+	p = glCreateProgram();
+	glAttachShader(p, v);
+	glAttachShader(p, f);
+
+	glBindAttribLocation(p, om_vertexLoc, "position");
+	glBindAttribLocation(p, om_textureLoc, "texCoord");
+	glBindFragDataLocation(p, 0, "FragColor");
+
+	glLinkProgram(p);
+	glValidateProgram(p);
+	printProgramInfoLog(p);
+
+	om_program = p;
+	om_vertexShader = v;
+	om_fragmentShader = f;
+
+	om_rgb_img = glGetUniformLocation(om_program, "rgb_img");
+	om_blur_map = glGetUniformLocation(om_program, "blur_map");
+	om_depth_map = glGetUniformLocation(om_program, "depth_map");
+	om_zFar_uniformLocation = glGetUniformLocation(om_program, "zFar");
+
+	return(p);
+}
 
 GLuint setupBlurShader() {
 	char *vs = NULL, *fs = NULL, *fs2 = NULL;
@@ -1796,6 +1911,9 @@ int init()
 
 	blur_program = setupBlurShader();
 	genVAOs_blur();
+
+	om_program = setupOmShader();
+	genVAOs_om();
 
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);

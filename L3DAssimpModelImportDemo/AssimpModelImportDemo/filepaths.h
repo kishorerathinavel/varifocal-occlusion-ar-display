@@ -4,12 +4,16 @@
 static const std::string basepath[] = {
 	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/other-models/",
 	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/assimp-models/models/OBJ/",
+	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/new_models/AC Cobra/",
+	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/new_models/Aventador/",
 	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/other-models/",
 	"G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/stanford-3d-models/bunny/textured/"
 };
 static const std::string modelname[] = {
 	"bench.obj",
 	"spider.obj",
+	"Shelby.obj",
+	"Avent.obj",
 	"bench.obj",
 	"bunny2.obj"
 };
