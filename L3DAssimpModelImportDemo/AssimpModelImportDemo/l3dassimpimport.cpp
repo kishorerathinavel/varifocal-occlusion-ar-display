@@ -69,6 +69,18 @@
 #include "testPythonInterface.h"
 #include "lens_controls.h"
 
+bool toggle_om = true;
+bool display_on_device = true;
+int display_1[] ={ 2560, 1600 };
+int display_2[] ={ 1440, 2560 };
+int display_3[] ={ 1920, 1080 };
+int om_vp_pos[] ={display_2[0], display_2[1] - display_3[1]};
+int om_vp_size[] ={1920, 1080};
+int vi_vp_pos[] ={650, 1102};
+int vi_vp_size[] ={ 313, 176 };
+int window_position[] ={display_1[0], 0 };
+int window_size[] ={ display_2[0] + display_3[0], 2560 };
+
 // This is for a shader uniform block
 struct MyMaterial {
 	float diffuse[4];
@@ -85,7 +97,7 @@ float modelMatrix[16];
 // For push and pop matrix
 std::vector<float *> matrixStack;
 
-float zNear = 0.01, zFar = 2.4;
+float zNear = 0.01, zFar = 11.4;
 
 // For Program 1 ======================================
 GLuint rbo_depth_image, fbo_rgbd, tex_rgb, tex_depth;
@@ -189,7 +201,7 @@ struct MyMesh {
 	int numFaces;
 };
 
-#define NUM_MODELS 2
+#define NUM_MODELS 1
 class Model {
 public:
 	std::vector<struct MyMesh> myMesh;
@@ -995,7 +1007,7 @@ void saveScreenShot(char* fname) {
 
 void saveImage(GLuint fbo, const char* outFilename1, const char* outFilename2) {
 	//allocate FreeImage memory
-	int width = 1024, height = 768;
+	int width = 1920, height = 1080;
 	int oldFramebuffer;
 
 	FIBITMAP *depth_img = FreeImage_Allocate(width, height, 32);
@@ -1157,7 +1169,7 @@ void renderScene() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo_rgbd);
 	glPushAttrib(GL_VIEWPORT_BIT);
-	glViewport(0, 0, 1024, 768);
+	glViewport(0, 0, 1920, 1080);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1192,6 +1204,9 @@ void renderScene() {
 	glPopAttrib();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo_blurmap_rgb);
+	glPushAttrib(GL_VIEWPORT_BIT);
+	glViewport(0, 0, 1920, 1080);
+
 	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1225,81 +1240,174 @@ void renderScene() {
 		// Important to set default active texture back to GL_TEXTURE0
 		glActiveTexture(GL_TEXTURE0);
 	}
+	glPopAttrib();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glPushAttrib(GL_VIEWPORT_BIT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glViewport(0, 0, 512, 384);
+	if (display_on_device) {
+		glPushAttrib(GL_VIEWPORT_BIT);
 
-	old1new0 = 0;
-	if (old1new0 == 1) { // Uses fixed pipeline
+		// Displaying the virtual image
+		glViewport(vi_vp_pos[0], vi_vp_pos[1], vi_vp_size[0], vi_vp_size[1]);
+		old1new0 = 0;
+		if (old1new0 == 1) { // Uses fixed pipeline
+			glUseProgram(0);
+			drawTextureToFramebuffer(tex_blurmap_rgb);
+		}
+		else { // Uses shaders
+			glUseProgram(blur_program);
+
+			// Important that these two lines come after the glUseProgram() command
+			glUniform1i(blur_rgb_img, 0);
+			glUniform1i(blur_blur_map, 1);
+			glUniform1i(blur_depth_map, 2);
+			glUniform1f(blur_zFar_uniformLocation, zFar);
+			glEnable(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0 + 0);
+			glBindTexture(GL_TEXTURE_2D, tex_rgb);
+			glActiveTexture(GL_TEXTURE0 + 1);
+			glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
+			glActiveTexture(GL_TEXTURE0 + 2);
+			glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+			glBindVertexArray(postprocess_VAO);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDisable(GL_TEXTURE_2D);
+			// Important to set default active texture back to GL_TEXTURE0
+			glActiveTexture(GL_TEXTURE0);
+		}
+
+		// Displaying the occlusion image
+		glViewport(om_vp_pos[0], om_vp_pos[1], om_vp_size[0], om_vp_size[1]);
+		if (toggle_om) {
+			old1new0 = 0;
+			if (old1new0 == 1) { // Uses fixed pipeline
+				glUseProgram(0);
+				drawTextureToFramebuffer(tex_depth);
+			}
+			else { // Uses shaders
+				glUseProgram(om_program);
+
+				// Important that these two lines come after the glUseProgram() command
+				glUniform1i(om_rgb_img, 0);
+				glUniform1i(om_blur_map, 1);
+				glUniform1i(om_depth_map, 2);
+				glUniform1f(om_zFar_uniformLocation, zFar);
+				glEnable(GL_TEXTURE_2D);
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_2D, tex_rgb);
+				glActiveTexture(GL_TEXTURE0 + 1);
+				glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
+				glActiveTexture(GL_TEXTURE0 + 2);
+				glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+				glBindVertexArray(postprocess_VAO);
+				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+				glDisable(GL_TEXTURE_2D);
+				// Important to set default active texture back to GL_TEXTURE0
+				glActiveTexture(GL_TEXTURE0);
+			}
+		}
+		else {
+			glUseProgram(0);
+			drawTextureToFramebuffer(tex_background);
+		}
+		glPopAttrib();
 		glUseProgram(0);
+	}
+	else {
+		glPushAttrib(GL_VIEWPORT_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glViewport(0, 0, 512, 384);
+
+		old1new0 = 0;
+		if (old1new0 == 1) { // Uses fixed pipeline
+			glUseProgram(0);
+			drawTextureToFramebuffer(tex_blurmap_rgb);
+		}
+		else { // Uses shaders
+			glUseProgram(blur_program);
+
+			// Important that these two lines come after the glUseProgram() command
+			glUniform1i(blur_rgb_img, 0);
+			glUniform1i(blur_blur_map, 1);
+			glUniform1i(blur_depth_map, 2);
+			glUniform1f(blur_zFar_uniformLocation, zFar);
+			glEnable(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0 + 0);
+			glBindTexture(GL_TEXTURE_2D, tex_rgb);
+			glActiveTexture(GL_TEXTURE0 + 1);
+			glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
+			glActiveTexture(GL_TEXTURE0 + 2);
+			glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+			glBindVertexArray(postprocess_VAO);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDisable(GL_TEXTURE_2D);
+			// Important to set default active texture back to GL_TEXTURE0
+			glActiveTexture(GL_TEXTURE0);
+		}
+
+		glViewport(0, 384, 512, 384);
+		old1new0 = 0;
+		if (old1new0 == 1) { // Uses fixed pipeline
+			glUseProgram(0);
+			drawTextureToFramebuffer(tex_depth);
+		}
+		else { // Uses shaders
+			glUseProgram(om_program);
+
+			// Important that these two lines come after the glUseProgram() command
+			glUniform1i(om_rgb_img, 0);
+			glUniform1i(om_blur_map, 1);
+			glUniform1i(om_depth_map, 2);
+			glUniform1f(om_zFar_uniformLocation, zFar);
+			glEnable(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0 + 0);
+			glBindTexture(GL_TEXTURE_2D, tex_rgb);
+			glActiveTexture(GL_TEXTURE0 + 1);
+			glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
+			glActiveTexture(GL_TEXTURE0 + 2);
+			glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+			glBindVertexArray(postprocess_VAO);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDisable(GL_TEXTURE_2D);
+			// Important to set default active texture back to GL_TEXTURE0
+			glActiveTexture(GL_TEXTURE0);
+		}
+
+		glUseProgram(0);
+		glViewport(512, 0, 512, 384);
 		drawTextureToFramebuffer(tex_blurmap_rgb);
+
+		glViewport(512, 384, 512, 384);
+		drawTextureToFramebuffer(tex_rgb);
+
+		glPopAttrib();
+
 	}
-	else { // Uses shaders
-		glUseProgram(blur_program);
-
-		// Important that these two lines come after the glUseProgram() command
-		glUniform1i(blur_rgb_img, 0);
-		glUniform1i(blur_blur_map, 1);
-		glUniform1i(blur_depth_map, 2);
-		glUniform1f(blur_zFar_uniformLocation, zFar);
-		glEnable(GL_TEXTURE_2D);
-		glActiveTexture(GL_TEXTURE0 + 0);
-		glBindTexture(GL_TEXTURE_2D, tex_rgb);
-		glActiveTexture(GL_TEXTURE0 + 1);
-		glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
-		glActiveTexture(GL_TEXTURE0 + 2);
-		glBindTexture(GL_TEXTURE_2D, tex_depth);
-
-		glBindVertexArray(postprocess_VAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glDisable(GL_TEXTURE_2D);
-		// Important to set default active texture back to GL_TEXTURE0
-		glActiveTexture(GL_TEXTURE0);
-	}
-
-	glViewport(0, 384, 512, 384);
-	old1new0 = 0;
-	if (old1new0 == 1) { // Uses fixed pipeline
-		glUseProgram(0);
-		drawTextureToFramebuffer(tex_depth);
-	}
-	else { // Uses shaders
-		glUseProgram(om_program);
-
-		// Important that these two lines come after the glUseProgram() command
-		glUniform1i(om_rgb_img, 0);
-		glUniform1i(om_blur_map, 1);
-		glUniform1i(om_depth_map, 2);
-		glUniform1f(om_zFar_uniformLocation, zFar);
-		glEnable(GL_TEXTURE_2D);
-		glActiveTexture(GL_TEXTURE0 + 0);
-		glBindTexture(GL_TEXTURE_2D, tex_rgb);
-		glActiveTexture(GL_TEXTURE0 + 1);
-		glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
-		glActiveTexture(GL_TEXTURE0 + 2);
-		glBindTexture(GL_TEXTURE_2D, tex_depth);
-
-		glBindVertexArray(postprocess_VAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glDisable(GL_TEXTURE_2D);
-		// Important to set default active texture back to GL_TEXTURE0
-		glActiveTexture(GL_TEXTURE0);
-	}
-
-
-	glUseProgram(0);
-	glViewport(512, 0, 512, 384);
-	drawTextureToFramebuffer(tex_blurmap_rgb);
-
-	glViewport(512, 384, 512, 384);
-	drawTextureToFramebuffer(tex_rgb);
-
-	glPopAttrib();
 
 	// swap buffers
 	glutSwapBuffers();
+}
+
+int modify_valuei(int value, int delta, int min_value, int max_value) {
+	value = value + delta;
+	if (value < min_value) {
+		value = min_value;
+	}
+
+	if (value > max_value) {
+		value = max_value;
+	}
+
+	return value;
+}
+
+
+void print_valuei(int value, char name[]) {
+	printf("%s: %d \n", name, value);
 }
 
 float modify_valuef(float value, float delta, float min_value, float max_value) {
@@ -1324,6 +1432,7 @@ void updateCamVariables() {
 	setCamera(camX, camY, camZ, 0, 0, 0);
 
 }
+
 
 // ------------------------------------------------------------
 //
@@ -1350,6 +1459,7 @@ void processKeys(unsigned char key, int xx, int yy) {
 			*/
 
 			switch (key) {
+			case 'p': toggle_om = !toggle_om; break;
 			case 'q': decrement_index(true, true); break;
 			case 'w': increment_index(true, true); break;
 			case 'a': decrement_index(true, false); break;
@@ -1438,6 +1548,32 @@ void processKeys(unsigned char key, int xx, int yy) {
 			default: printf("Entered key does nothing \n");
 			}
 			updateCamVariables();
+		}
+		else if (keymapmode == 3) {
+			//int display_1[] ={ 2560, 1600 };
+			//int display_2[] ={ 1440, 2560 };
+			//int display_3[] ={ 1920, 1080 };
+			//int om_vp_pos[] ={display_1[0] + display_2[0], 0};
+			//int om_vp_size[] ={1920, 1080};
+			//int vi_vp_pos[] ={display_1[0],0};
+			//int vi_vp_size[] ={1920,1080};
+			/*
+			Remaining letters:
+			qwertyuiop
+			asdfghjkl
+			zxcvbnm
+			*/
+
+			switch (key) {
+			case 'q': vi_vp_pos[0] = modify_valuei(vi_vp_pos[0], -1, 0, display_2[0]); print_valuei(vi_vp_pos[0], "vi_vp_pos[0]"); break;
+			case 'w': vi_vp_pos[0] = modify_valuei(vi_vp_pos[0], 1, 0, display_2[0]); print_valuei(vi_vp_pos[0], "vi_vp_pos[0]"); break;
+			case 'e': vi_vp_pos[1] = modify_valuei(vi_vp_pos[1], -1, 0, display_2[0]); print_valuei(vi_vp_pos[1], "vi_vp_pos[1]"); break;
+			case 'r': vi_vp_pos[1] = modify_valuei(vi_vp_pos[1], 1, 0, display_2[0]); print_valuei(vi_vp_pos[1], "vi_vp_pos[1]"); break;
+			case 'a': vi_vp_size[0] = modify_valuei(vi_vp_size[0], -1, 0, display_2[0]); vi_vp_size[1] = (float(om_vp_size[1])/om_vp_size[0])*vi_vp_size[0]; print_valuei(vi_vp_size[0], "vi_vp_size[0]"); print_valuei(vi_vp_size[1], "vi_vp_size[1]"); break;
+			case 's': vi_vp_size[0] = modify_valuei(vi_vp_size[0], 1, 0, display_2[0]); vi_vp_size[1] = (float(om_vp_size[1])/om_vp_size[0])*vi_vp_size[0]; print_valuei(vi_vp_size[0], "vi_vp_size[0]"); print_valuei(vi_vp_size[1], "vi_vp_size[1]"); break;
+			default: printf("Entered key does nothing \n");
+			}
+
 		}
 	}
 
@@ -1820,8 +1956,8 @@ int init()
 	ilInit();
 
 	for (int modelIter = 0; modelIter < NUM_MODELS; modelIter++) {
-		model[modelIter].basepath = basepath[modelIter];
-		model[modelIter].modelname = modelname[modelIter];
+		model[modelIter].basepath = file_path_and_name[modelIter][0];
+		model[modelIter].modelname = file_path_and_name[modelIter][1];
 		if (!Import3DFromFile(model[modelIter]))
 			return(0);
 		LoadGLTextures(model[modelIter]);
@@ -1843,7 +1979,8 @@ int init()
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	char fileName[1024] = "background.png";
+	//char fileName[1024] = "background.png";
+	char fileName[1024] = "white1.png";
 	glGenTextures(1, &tex_background);
 	glBindTexture(GL_TEXTURE_2D, tex_background);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1863,21 +2000,21 @@ int init()
 	glBindTexture(GL_TEXTURE_2D, tex_rgb);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 768, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1920, 1080, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glGenTextures(1, &tex_depth);
 	glBindTexture(GL_TEXTURE_2D, tex_depth);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1024, 768, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1920, 1080, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	printf("Works so far \n");
 	//create fbos/renderbuffers
 	glGenRenderbuffers(1, &rbo_depth_image);
 	glBindRenderbuffer(GL_RENDERBUFFER, rbo_depth_image);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1024, 768);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1920, 1080);
 
 	glGenFramebuffers(1, &fbo_rgbd);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo_rgbd);
@@ -1897,7 +2034,7 @@ int init()
 	glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 768, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1920, 1080, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glGenFramebuffers(1, &fbo_blurmap_rgb);
@@ -1917,8 +2054,6 @@ int init()
 
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
 
 	//glEnable(GL_LIGHT0);
 	//glEnable(GL_NORMALIZE);
@@ -1955,14 +2090,31 @@ int main(int argc, char **argv) {
 	//  GLUT initialization
 	glutInit(&argc, argv);
 
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);
+	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 
 	//glutInitContextVersion(3, 3);
 	//glutInitContextFlags(GLUT_COMPATIBILITY_PROFILE);
 
-	glutInitWindowPosition(100, 100);
-	glutInitWindowSize(1024, 768);
-	glutCreateWindow("Lighthouse3D - Assimp Demo");
+	if (display_on_device) {
+		//printf("%d %d \n", window_position[0], window_position[1]);
+		//printf("%d %d \n", window_size[0], window_size[1]);
+		//glutInitWindowPosition(window_position[0], window_position[1]);
+		//glutInitWindowSize(window_size[0], window_size[1]);
+
+		//window_position[0] = 0; // position in x
+		//window_position[1] = 0; // position in y
+		//window_size[0] = 2*1920;
+		//window_size[1] = 1080;
+		printf("%d %d \n", window_position[0], window_position[1]);
+		printf("%d %d \n", window_size[0], window_size[1]);
+		glutInitWindowPosition(window_position[0], window_position[1]);
+		glutInitWindowSize(window_size[0], window_size[1]);
+	}
+	else {
+		glutInitWindowPosition(100, 100);
+		glutInitWindowSize(1920, 1080);
+	}
+	glutCreateWindow("Varifocal Occlusion");
 
 
 	//  Callback Registration

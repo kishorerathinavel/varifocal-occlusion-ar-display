@@ -17,7 +17,7 @@ uniform float focal_depth;
 float convertDisaprityToBlur(vec4 v4_disparity) {
   float factor = 1.0;
   //return factor*v4_disparity[0]*v4_disparity[0];
-  return factor*v4_disparity[0];
+  return sqrt(factor*v4_disparity[0]);
 }
 
 // Things to play around with:
@@ -41,7 +41,9 @@ void main() {
       if(iterX == 0 && iterY == 0) {
 	continue;
       } else {
-	vec2 adjTexCoord = vec2(TexCoord.x + 10.0*float(iterX)/maxX, TexCoord.y + 10.0*float(iterY)/maxY);
+	float iterXf = float(iterX);
+	float iterYf = float(iterY);
+	vec2 adjTexCoord = vec2(TexCoord.x + 2.0*iterXf/maxX, TexCoord.y + 2.0*iterYf/maxY);
 	vec4 v4_adjFrag_depth = texture(depth_map, adjTexCoord);
 	float adjFrag_depth = v4_adjFrag_depth[0];
 	if((adjFrag_depth == 1.0) || (adjFrag_depth - centerFrag_depth > 0.01)) {
@@ -49,12 +51,13 @@ void main() {
 	}
 	else {
 	  vec4 v4_adjFrag_blur = vec4(convertDisaprityToBlur(texture(blur_map, adjTexCoord)));
-	  contributionFromAdjFrag = contributionFromAdjFrag + v4_adjFrag_blur;
+	  float dist = sqrt((iterXf*iterXf)/100.0 + (iterYf*iterYf)/100.0);
+	  contributionFromAdjFrag = contributionFromAdjFrag + dist*v4_adjFrag_blur;
 	} 
       }
     }
   }
-  FragColor = (vec4(1.0 - centerFrag_blur) + contributionFromAdjFrag/(20.0*20.0));
+  FragColor = vec4(1.0) - (vec4(1.0 - centerFrag_blur) + contributionFromAdjFrag/(3.14*10.0*10.0));
   // if(TexCoord.x < 0.5) {
   //   FragColor = vec4(1.0 - centerFrag_blur);
   // } else {
