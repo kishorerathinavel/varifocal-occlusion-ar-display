@@ -70,14 +70,14 @@
 #include "lens_controls.h"
 
 bool toggle_om = true;
-bool display_on_device = true;
+bool display_on_device = !true;
 int display_1[] ={ 2560, 1600 };
 int display_2[] ={ 1440, 2560 };
 int display_3[] ={ 1920, 1080 };
 int om_vp_pos[] ={display_2[0], display_2[1] - display_3[1]};
 int om_vp_size[] ={1920, 1080};
-int vi_vp_pos[] ={650, 1102};
-int vi_vp_size[] ={ 313, 176 };
+int vi_vp_pos[] ={659, 1101};
+int vi_vp_size[] ={ 317, 178 };
 int window_position[] ={display_1[0], 0 };
 int window_size[] ={ display_2[0] + display_3[0], 2560 };
 
@@ -201,7 +201,7 @@ struct MyMesh {
 	int numFaces;
 };
 
-#define NUM_MODELS 1
+#define NUM_MODELS 2
 class Model {
 public:
 	std::vector<struct MyMesh> myMesh;
@@ -1531,18 +1531,18 @@ void processKeys(unsigned char key, int xx, int yy) {
 						  printf("currModel->scaleFactor: %f\n", currModel->scaleFactor);
 						  break;
 			}
-			case 'e': currModel->rotation[0] -= stepSize; break;
-			case 'r': currModel->rotation[0] += stepSize; break;
-			case 'd': currModel->rotation[1] -= stepSize; break;
-			case 'f': currModel->rotation[1] += stepSize; break;
-			case 'c': currModel->rotation[2] -= stepSize; break;
-			case 'v': currModel->rotation[2] += stepSize; break;
-			case 't': currModel->translation[0] -= stepSize; break;
-			case 'y': currModel->translation[0] += stepSize; break;
-			case 'g': currModel->translation[1] -= stepSize; break;
-			case 'h': currModel->translation[1] += stepSize; break;
-			case 'b': currModel->translation[2] -= stepSize; break;
-			case 'n': currModel->translation[2] += stepSize; break;
+			case 'e': currModel->rotation[0] -= stepSize; printf("currModel->rotation[0]: %f \n", currModel->rotation[0]); break;
+			case 'r': currModel->rotation[0] += stepSize; printf("currModel->rotation[0]: %f \n", currModel->rotation[0]); break;
+			case 'd': currModel->rotation[1] -= stepSize; printf("currModel->rotation[1]: %f \n", currModel->rotation[1]); break;
+			case 'f': currModel->rotation[1] += stepSize; printf("currModel->rotation[1]: %f \n", currModel->rotation[1]); break;
+			case 'c': currModel->rotation[2] -= stepSize; printf("currModel->rotation[2]: %f \n", currModel->rotation[2]); break;
+			case 'v': currModel->rotation[2] += stepSize; printf("currModel->rotation[2]: %f \n", currModel->rotation[2]); break;
+			case 't': currModel->translation[0] -= stepSize; printf("currModel->translation[0]: %f \n", currModel->translation[0]);break;
+			case 'y': currModel->translation[0] += stepSize; printf("currModel->translation[0]: %f \n", currModel->translation[0]);break;
+			case 'g': currModel->translation[1] -= stepSize; printf("currModel->translation[1]: %f \n", currModel->translation[1]);break;
+			case 'h': currModel->translation[1] += stepSize; printf("currModel->translation[1]: %f \n", currModel->translation[1]);break;
+			case 'b': currModel->translation[2] -= stepSize; printf("currModel->translation[2]: %f \n", currModel->translation[2]);break;
+			case 'n': currModel->translation[2] += stepSize; printf("currModel->translation[2]: %f \n", currModel->translation[2]);break;
 			case 'p': savePosition(); printf("Saving Position Information \n"); break;
 			case 'u': usePosition(); break;
 			default: printf("Entered key does nothing \n");
@@ -2090,7 +2090,7 @@ int main(int argc, char **argv) {
 	//  GLUT initialization
 	glutInit(&argc, argv);
 
-	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);
 
 	//glutInitContextVersion(3, 3);
 	//glutInitContextFlags(GLUT_COMPATIBILITY_PROFILE);
@@ -2152,8 +2152,8 @@ int main(int argc, char **argv) {
 	// return from main loop
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
-	usePosition();
-	updateCamVariables();
+	//usePosition();
+	//updateCamVariables();
 	//  GLUT main loop
 	glutMainLoop();
 

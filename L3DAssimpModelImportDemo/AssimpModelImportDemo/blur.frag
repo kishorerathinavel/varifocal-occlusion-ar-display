@@ -64,7 +64,7 @@ void main() {
     }
   }
 
-  FragColor = (1.0 - centerFrag_blur)*v4_centerFrag_rgb + contributionFromAdjFrag/(10.0*10.0);
+  FragColor = (1.0 - centerFrag_blur)*v4_centerFrag_rgb + contributionFromAdjFrag/(3.14*10.0*10.0);
   // if(corrected_TexCoord.x < 0.5) {
   //   FragColor = (1.0 - centerFrag_blur)*v4_centerFrag_rgb;
   // } else {

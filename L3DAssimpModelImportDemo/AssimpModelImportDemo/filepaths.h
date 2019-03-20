@@ -1,11 +1,13 @@
 #pragma once
 
 static const std::string file_path_and_name[][2] ={
+	{"G:/My Drive/Research/3d_models_nick_kishore/Flower/Daffodil_Flower/","12977_Daffodil_flower_v1_l2.obj"},
+	{"G:/My Drive/Research/3d_models_nick_kishore/newmodels/flowerswithsharedtexture/", "Poppy_0.OBJ"}, // useless
 	{ "G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/plant/1/", "tulip.obj" },
+	{ "G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/plant/2/", "whitelilyFIXED.obj" },
 	{ "G:/My Drive/Research/3d_models_nick_kishore/poker_cards/", "Card1.obj" }, 
 	{ "G:/My Drive/Research/3d_models_nick_kishore/bridge/", "Bridge.obj" }, 
 	{ "G:/My Drive/Research/3d_models_nick_kishore/textured_teapot/", "teapot_2018_02_14_8_34.obj" },
-	{ "G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/plant/2/", "whitelilyFIXED.obj" },
 	{ "G:/My Drive/Research/3d_models_nick_kishore/colorful_dragon/", "dragon_color1obj.obj" },
 	{ "G:/My Drive/Research/Projects/NELF_gd/Shared/3d-models/plant/4/", "Flower vase.obj" },
 	{ "G:/My Drive/Research/3d_models_nick_kishore/poker_cards/", "Card2.obj" },
