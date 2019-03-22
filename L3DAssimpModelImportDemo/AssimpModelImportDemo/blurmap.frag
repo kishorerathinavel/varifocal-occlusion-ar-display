@@ -9,8 +9,6 @@ uniform sampler2D rgb_img;
 uniform sampler2D depth_map;
 uniform float zNear;
 uniform float zFar;
-uniform float linear_near;
-uniform float linear_far;
 uniform float focal_depth;
 
 void main() {   

@@ -70,7 +70,8 @@
 #include "lens_controls.h"
 
 bool toggle_om = true;
-bool display_on_device = !true;
+bool fixed_focus = false;
+bool display_on_device = true;
 int display_1[] ={ 2560, 1600 };
 int display_2[] ={ 1440, 2560 };
 int display_3[] ={ 1920, 1080 };
@@ -153,13 +154,11 @@ char *fname_blurmap_vertex_shader = "blurmap.vert";
 char *fname_blurmap_fragment_shader = "blurmap.frag";
 
 // Values to pass in
-float linear_near_value = 0.0, linear_far_value = 1.0;
 float focal_depth_value = 0.5;
 // For Program 2 =====================================
 
 // For Program 3 =====================================
 GLuint blur_zNear_uniformLocation, blur_zFar_uniformLocation;
-GLuint fbo_blur_rgb, tex_blur_rgb;
 
 // Vertex Attribute Locations
 GLuint blur_vertexLoc, blur_textureLoc;
@@ -176,7 +175,6 @@ char *fname_blur_fragment_shader = "blur.frag";
 
 // For Program 3 =====================================
 GLuint om_zNear_uniformLocation, om_zFar_uniformLocation;
-GLuint fbo_om_rgb, tex_om_rgb;
 
 // Vertex Attribute Locations
 GLuint om_vertexLoc, om_textureLoc;
@@ -191,6 +189,34 @@ GLuint om_program, om_vertexShader, om_fragmentShader;
 char *fname_om_fragment_shader = "om.frag";
 // For Program 3 =====================================
 
+// For Program 4 =====================================
+// Vertex Attribute Locations
+GLuint fixed_om_vertexLoc, fixed_om_textureLoc;
+
+// Sampler Uniform
+GLuint fixed_om_depth_map;
+
+// Program and Shader Identifiers
+GLuint fixed_om_program, fixed_om_vertexShader, fixed_om_fragmentShader;
+
+// Shader Names
+char *fname_fixed_om_fragment_shader = "fixed_om.frag";
+// For Program 4 =====================================
+
+// For Program 5 =====================================
+// Vertex Attribute Locations
+GLuint fixed_vip_vertexLoc, fixed_vip_textureLoc;
+
+// Sampler Uniform
+GLuint fixed_vip_rgb_img;
+
+// Program and Shader Identifiers
+GLuint fixed_vip_program, fixed_vip_vertexShader, fixed_vip_fragmentShader;
+
+// Shader Names
+char *fname_fixed_vip_fragment_shader = "fixed_vip.frag";
+// For Program 5 =====================================
+
 
 
 // Information to render each assimp node
@@ -201,7 +227,7 @@ struct MyMesh {
 	int numFaces;
 };
 
-#define NUM_MODELS 2
+#define NUM_MODELS 3
 class Model {
 public:
 	std::vector<struct MyMesh> myMesh;
@@ -764,6 +790,28 @@ void genVAOs_blurmap() {
 	glEnableVertexAttribArray(blurmap_textureLoc);
 }
 
+void genVAOs_fixed_om() {
+	glGenVertexArrays(1, &postprocess_VAO);
+	glGenBuffers(1, &postprocess_VBO);
+	glGenBuffers(1, &postprocess_EBO);
+
+	glBindVertexArray(postprocess_VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, postprocess_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(postprocess_vertices), postprocess_vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, postprocess_EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(postprocess_indices), postprocess_indices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(fixed_om_vertexLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(fixed_om_vertexLoc);
+	// texture coord attribute
+	glVertexAttribPointer(fixed_om_textureLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(fixed_om_textureLoc);
+}
+
+
 void genVAOs_om() {
 	glGenVertexArrays(1, &postprocess_VAO);
 	glGenBuffers(1, &postprocess_VBO);
@@ -783,6 +831,27 @@ void genVAOs_om() {
 	// texture coord attribute
 	glVertexAttribPointer(om_textureLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(om_textureLoc);
+}
+
+void genVAOs_fixed_vip() {
+	glGenVertexArrays(1, &postprocess_VAO);
+	glGenBuffers(1, &postprocess_VBO);
+	glGenBuffers(1, &postprocess_EBO);
+
+	glBindVertexArray(postprocess_VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, postprocess_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(postprocess_vertices), postprocess_vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, postprocess_EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(postprocess_indices), postprocess_indices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(fixed_vip_vertexLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(fixed_vip_vertexLoc);
+	// texture coord attribute
+	glVertexAttribPointer(fixed_vip_textureLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(fixed_vip_textureLoc);
 }
 
 void genVAOs_blur() {
@@ -1225,8 +1294,6 @@ void renderScene() {
 		glUniform1i(blurmap_depth_map, 1);
 		glUniform1f(blurmap_zFar_uniformLocation, zFar);
 		glUniform1f(blurmap_zNear_uniformLocation, zNear);
-		glUniform1f(blurmap_linear_near_uniformLocation, linear_near_value);
-		glUniform1f(blurmap_linear_far_uniformLocation, linear_far_value);
 		glUniform1f(blurmap_focal_depth_uniformLocation, focal_depth_value);
 		glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE0 + 0);
@@ -1249,10 +1316,20 @@ void renderScene() {
 
 		// Displaying the virtual image
 		glViewport(vi_vp_pos[0], vi_vp_pos[1], vi_vp_size[0], vi_vp_size[1]);
-		old1new0 = 0;
-		if (old1new0 == 1) { // Uses fixed pipeline
-			glUseProgram(0);
-			drawTextureToFramebuffer(tex_blurmap_rgb);
+		if (fixed_focus) { // Uses fixed pipeline
+			glUseProgram(fixed_vip_program);
+
+			// Important that these two lines come after the glUseProgram() command
+			glUniform1i(fixed_vip_rgb_img, 0);
+			glEnable(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0 + 0);
+			glBindTexture(GL_TEXTURE_2D, tex_rgb);
+
+			glBindVertexArray(postprocess_VAO);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDisable(GL_TEXTURE_2D);
+			// Important to set default active texture back to GL_TEXTURE0
+			glActiveTexture(GL_TEXTURE0);
 		}
 		else { // Uses shaders
 			glUseProgram(blur_program);
@@ -1280,10 +1357,20 @@ void renderScene() {
 		// Displaying the occlusion image
 		glViewport(om_vp_pos[0], om_vp_pos[1], om_vp_size[0], om_vp_size[1]);
 		if (toggle_om) {
-			old1new0 = 0;
-			if (old1new0 == 1) { // Uses fixed pipeline
-				glUseProgram(0);
-				drawTextureToFramebuffer(tex_depth);
+			if (fixed_focus) { // Uses fixed pipeline
+				glUseProgram(fixed_om_program);
+
+				// Important that these two lines come after the glUseProgram() command
+				glUniform1i(fixed_om_depth_map, 0);
+				glEnable(GL_TEXTURE_2D);
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+				glBindVertexArray(postprocess_VAO);
+				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+				glDisable(GL_TEXTURE_2D);
+				// Important to set default active texture back to GL_TEXTURE0
+				glActiveTexture(GL_TEXTURE0);
 			}
 			else { // Uses shaders
 				glUseProgram(om_program);
@@ -1320,10 +1407,20 @@ void renderScene() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glViewport(0, 0, 512, 384);
 
-		old1new0 = 0;
-		if (old1new0 == 1) { // Uses fixed pipeline
-			glUseProgram(0);
-			drawTextureToFramebuffer(tex_blurmap_rgb);
+		if (fixed_focus) { // Uses fixed pipeline
+			glUseProgram(fixed_vip_program);
+
+			// Important that these two lines come after the glUseProgram() command
+			glUniform1i(fixed_vip_rgb_img, 0);
+			glEnable(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0 + 0);
+			glBindTexture(GL_TEXTURE_2D, tex_rgb);
+
+			glBindVertexArray(postprocess_VAO);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDisable(GL_TEXTURE_2D);
+			// Important to set default active texture back to GL_TEXTURE0
+			glActiveTexture(GL_TEXTURE0);
 		}
 		else { // Uses shaders
 			glUseProgram(blur_program);
@@ -1350,9 +1447,20 @@ void renderScene() {
 
 		glViewport(0, 384, 512, 384);
 		old1new0 = 0;
-		if (old1new0 == 1) { // Uses fixed pipeline
-			glUseProgram(0);
-			drawTextureToFramebuffer(tex_depth);
+		if (fixed_focus) { // Uses fixed pipeline
+			glUseProgram(fixed_om_program);
+
+			// Important that these two lines come after the glUseProgram() command
+			glUniform1i(fixed_om_depth_map, 0);
+			glEnable(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0 + 0);
+			glBindTexture(GL_TEXTURE_2D, tex_depth);
+
+			glBindVertexArray(postprocess_VAO);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDisable(GL_TEXTURE_2D);
+			// Important to set default active texture back to GL_TEXTURE0
+			glActiveTexture(GL_TEXTURE0);
 		}
 		else { // Uses shaders
 			glUseProgram(om_program);
@@ -1379,10 +1487,10 @@ void renderScene() {
 
 		glUseProgram(0);
 		glViewport(512, 0, 512, 384);
-		drawTextureToFramebuffer(tex_blurmap_rgb);
+		drawTextureToFramebuffer(tex_blurmap_rgb); // Blurmap
 
 		glViewport(512, 384, 512, 384);
-		drawTextureToFramebuffer(tex_rgb);
+		drawTextureToFramebuffer(tex_rgb); // RGB image
 
 		glPopAttrib();
 
@@ -1441,16 +1549,13 @@ void updateCamVariables() {
 float stepSize = 0.1;
 int keymapmode = 1;
 void processKeys(unsigned char key, int xx, int yy) {
-	if (key == 27) {
-		glutLeaveMainLoop();
-	}
 
 	if (key == '`') {
 		keymapmode = (keymapmode++) % 4;
 		printf("keymapmode: %d \n", keymapmode);
 	}
 	else {
-		if (keymapmode == 1) {
+		if (keymapmode == 1) { // Recording results
 			/*
 			Remaining letters:
 			  e     op
@@ -1459,44 +1564,24 @@ void processKeys(unsigned char key, int xx, int yy) {
 			*/
 
 			switch (key) {
+			case 27: { glutLeaveMainLoop(); break; }
 			case 'p': toggle_om = !toggle_om; break;
-			case 'q': decrement_index(true, true); break;
-			case 'w': increment_index(true, true); break;
-			case 'a': decrement_index(true, false); break;
-			case 's': increment_index(true, false); break;
-			case 'z': decrement_index(false, true); break;
-			case 'x': increment_index(false, true); break;
-			case 'n': set_fl_absolute_middle(); break;
-			case 'm': set_fl_middle(); break;
-			case 'r': reset_orig_fl(); break;
-			case 'd': modify_current_fl(1, -0.1); break;
-			case 'f': modify_current_fl(1, 0.1); break;
-			case 'c': modify_current_fl(4, -0.1); break;
-			case 'v': modify_current_fl(4, 0.1); break;
-			case 't': linear_near_value = modify_valuef(linear_near_value, -0.01, 0.0, linear_far_value); printf("linear_near_value: %f \n", linear_near_value);  break;
-			case 'y': linear_near_value = modify_valuef(linear_near_value,  0.01, 0.0, linear_far_value); printf("linear_near_value: %f \n", linear_near_value); break;
-			case 'g': linear_far_value = modify_valuef(linear_far_value, -0.01, linear_near_value, 1.0); printf("linear_far_value: %f \n", linear_far_value); break;
-			case 'h': linear_far_value = modify_valuef(linear_far_value,  0.01, linear_near_value, 1.0); printf("linear_far_value: %f \n", linear_far_value); break;
+			case 'f': fixed_focus = !fixed_focus; break;
 			case 'j': focal_depth_value = modify_valuef(focal_depth_value, -0.01, 0.0, 1.0); printf("focal_depth_value: %f \n", focal_depth_value); break;
 			case 'k': focal_depth_value = modify_valuef(focal_depth_value, 0.01, 0.0, 1.0); printf("focal_depth_value: %f \n", focal_depth_value); break;
-			case 'u': zFar = modify_valuef(zFar, -0.1, zNear, 200.0); printf("zFar: %f \n", zFar); break;
-			case 'i': zFar = modify_valuef(zFar, 0.1, zNear, 200.0); printf("zFar: %f \n", zFar); break;
 			default: printf("Entered key does nothing \n");
 			}
 		}
-		else if (keymapmode == 2) {
+		else if (keymapmode == 2) { // Adjusting 3d models
 			/*
 			Remaining letters:
-			qwertyuiop
-			asdfghjkl
-			zxcvbnm
+			       io 
+			a     j  
+			       
 			*/
 
 			switch (key) {
-			case 27: {
-						 glutLeaveMainLoop();
-						 break;
-			}
+			case 27: { glutLeaveMainLoop(); break; }
 			case 'z': r -= 0.1f; break;
 			case 'x': r += 0.1f; break;
 			case 'm': glEnable(GL_MULTISAMPLE); break;
@@ -1545,18 +1630,13 @@ void processKeys(unsigned char key, int xx, int yy) {
 			case 'n': currModel->translation[2] += stepSize; printf("currModel->translation[2]: %f \n", currModel->translation[2]);break;
 			case 'p': savePosition(); printf("Saving Position Information \n"); break;
 			case 'u': usePosition(); break;
+			case 'k': zFar = modify_valuef(zFar, -0.1, zNear, 200.0); printf("zFar: %f \n", zFar); break;
+			case 'l': zFar = modify_valuef(zFar, 0.1, zNear, 200.0); printf("zFar: %f \n", zFar); break;
 			default: printf("Entered key does nothing \n");
 			}
 			updateCamVariables();
 		}
-		else if (keymapmode == 3) {
-			//int display_1[] ={ 2560, 1600 };
-			//int display_2[] ={ 1440, 2560 };
-			//int display_3[] ={ 1920, 1080 };
-			//int om_vp_pos[] ={display_1[0] + display_2[0], 0};
-			//int om_vp_size[] ={1920, 1080};
-			//int vi_vp_pos[] ={display_1[0],0};
-			//int vi_vp_size[] ={1920,1080};
+		else if (keymapmode == 3) { // Adjusting viewport for display calibration
 			/*
 			Remaining letters:
 			qwertyuiop
@@ -1565,6 +1645,7 @@ void processKeys(unsigned char key, int xx, int yy) {
 			*/
 
 			switch (key) {
+			case 27: { glutLeaveMainLoop(); break; }
 			case 'q': vi_vp_pos[0] = modify_valuei(vi_vp_pos[0], -1, 0, display_2[0]); print_valuei(vi_vp_pos[0], "vi_vp_pos[0]"); break;
 			case 'w': vi_vp_pos[0] = modify_valuei(vi_vp_pos[0], 1, 0, display_2[0]); print_valuei(vi_vp_pos[0], "vi_vp_pos[0]"); break;
 			case 'e': vi_vp_pos[1] = modify_valuei(vi_vp_pos[1], -1, 0, display_2[0]); print_valuei(vi_vp_pos[1], "vi_vp_pos[1]"); break;
@@ -1574,6 +1655,32 @@ void processKeys(unsigned char key, int xx, int yy) {
 			default: printf("Entered key does nothing \n");
 			}
 
+		} 
+		else if (keymapmode == 4) {
+			/*
+			Remaining letters:
+			qwertyuiop
+			asdfghjkl
+			zxcvbnm
+			*/
+
+			switch (key) {
+			case 27: { glutLeaveMainLoop(); break; }
+			case 'q': decrement_index(true, true); break;
+			case 'w': increment_index(true, true); break;
+			case 'a': decrement_index(true, false); break;
+			case 's': increment_index(true, false); break;
+			case 'z': decrement_index(false, true); break;
+			case 'x': increment_index(false, true); break;
+			case 'n': set_fl_absolute_middle(); break;
+			case 'm': set_fl_middle(); break;
+			case 'r': reset_orig_fl(); break;
+			case 'd': modify_current_fl(1, -0.1); break;
+			case 'f': modify_current_fl(1, 0.1); break;
+			case 'c': modify_current_fl(4, -0.1); break;
+			case 'v': modify_current_fl(4, 0.1); break;
+			default: printf("Entered key does nothing \n");
+			}
 		}
 	}
 
@@ -1698,7 +1805,53 @@ void printProgramInfoLog(GLuint obj)
 	}
 }
 
-GLuint setupOmShader() {
+GLuint setup_fixed_om_shader() {
+	char *vs = NULL, *fs = NULL, *fs2 = NULL;
+
+	GLuint p, v, f;
+
+	v = glCreateShader(GL_VERTEX_SHADER);
+	f = glCreateShader(GL_FRAGMENT_SHADER);
+
+	vs = textFileRead(fname_blurmap_vertex_shader);
+	fs = textFileRead(fname_fixed_om_fragment_shader);
+
+	const char * vv = vs;
+	const char * ff = fs;
+
+	glShaderSource(v, 1, &vv, NULL);
+	glShaderSource(f, 1, &ff, NULL);
+
+	free(vs); free(fs);
+
+	glCompileShader(v);
+	glCompileShader(f);
+
+	printShaderInfoLog(f);
+	printShaderInfoLog(v);
+	
+	p = glCreateProgram();
+	glAttachShader(p, v);
+	glAttachShader(p, f);
+
+	glBindAttribLocation(p, fixed_om_vertexLoc, "position");
+	glBindAttribLocation(p, fixed_om_textureLoc, "texCoord");
+	glBindFragDataLocation(p, 0, "FragColor");
+
+	glLinkProgram(p);
+	glValidateProgram(p);
+	printProgramInfoLog(p);
+
+	fixed_om_program = p;
+	fixed_om_vertexShader = v;
+	fixed_om_fragmentShader = f;
+
+	fixed_om_depth_map = glGetUniformLocation(fixed_om_program, "depth_map");
+
+	return(p);
+}
+
+GLuint setup_om_shader() {
 	char *vs = NULL, *fs = NULL, *fs2 = NULL;
 
 	GLuint p, v, f;
@@ -1743,6 +1896,52 @@ GLuint setupOmShader() {
 	om_blur_map = glGetUniformLocation(om_program, "blur_map");
 	om_depth_map = glGetUniformLocation(om_program, "depth_map");
 	om_zFar_uniformLocation = glGetUniformLocation(om_program, "zFar");
+
+	return(p);
+}
+
+GLuint setup_fixed_vip_shader() {
+	char *vs = NULL, *fs = NULL, *fs2 = NULL;
+
+	GLuint p, v, f;
+
+	v = glCreateShader(GL_VERTEX_SHADER);
+	f = glCreateShader(GL_FRAGMENT_SHADER);
+
+	vs = textFileRead(fname_blurmap_vertex_shader);
+	fs = textFileRead(fname_fixed_vip_fragment_shader);
+
+	const char * vv = vs;
+	const char * ff = fs;
+
+	glShaderSource(v, 1, &vv, NULL);
+	glShaderSource(f, 1, &ff, NULL);
+
+	free(vs); free(fs);
+
+	glCompileShader(v);
+	glCompileShader(f);
+
+	printShaderInfoLog(f);
+	printShaderInfoLog(v);
+	
+	p = glCreateProgram();
+	glAttachShader(p, v);
+	glAttachShader(p, f);
+
+	glBindAttribLocation(p, fixed_vip_vertexLoc, "position");
+	glBindAttribLocation(p, fixed_vip_textureLoc, "texCoord");
+	glBindFragDataLocation(p, 0, "FragColor");
+
+	glLinkProgram(p);
+	glValidateProgram(p);
+	printProgramInfoLog(p);
+
+	fixed_vip_program = p;
+	fixed_vip_vertexShader = v;
+	fixed_vip_fragmentShader = f;
+
+	fixed_vip_rgb_img = glGetUniformLocation(fixed_vip_program, "rgb_img");
 
 	return(p);
 }
@@ -2030,6 +2229,9 @@ int init()
 	blurmap_program = setupBlurmapShader();
 	genVAOs_blurmap();
 
+	fixed_vip_program = setup_fixed_vip_shader();
+	genVAOs_fixed_vip();
+
 	glGenTextures(1, &tex_blurmap_rgb);
 	glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -2049,8 +2251,11 @@ int init()
 	blur_program = setupBlurShader();
 	genVAOs_blur();
 
-	om_program = setupOmShader();
+	om_program = setup_om_shader();
 	genVAOs_om();
+
+	fixed_om_program = setup_fixed_om_shader();
+	genVAOs_fixed_om();
 
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -2096,15 +2301,6 @@ int main(int argc, char **argv) {
 	//glutInitContextFlags(GLUT_COMPATIBILITY_PROFILE);
 
 	if (display_on_device) {
-		//printf("%d %d \n", window_position[0], window_position[1]);
-		//printf("%d %d \n", window_size[0], window_size[1]);
-		//glutInitWindowPosition(window_position[0], window_position[1]);
-		//glutInitWindowSize(window_size[0], window_size[1]);
-
-		//window_position[0] = 0; // position in x
-		//window_position[1] = 0; // position in y
-		//window_size[0] = 2*1920;
-		//window_size[1] = 1080;
 		printf("%d %d \n", window_position[0], window_position[1]);
 		printf("%d %d \n", window_size[0], window_size[1]);
 		glutInitWindowPosition(window_position[0], window_position[1]);
@@ -2152,8 +2348,8 @@ int main(int argc, char **argv) {
 	// return from main loop
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
-	//usePosition();
-	//updateCamVariables();
+	usePosition();
+	updateCamVariables();
 	//  GLUT main loop
 	glutMainLoop();
 
