@@ -71,7 +71,7 @@
 
 bool toggle_om = true;
 bool fixed_focus = false;
-bool display_on_device = true;
+bool display_on_device = !true;
 int display_1[] ={ 2560, 1600 };
 int display_2[] ={ 1440, 2560 };
 int display_3[] ={ 1920, 1080 };
