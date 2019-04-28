@@ -982,11 +982,14 @@ def howlett_upgraded_OD():
     IOD.lens_l.append(curr_lens)
 
 
-    d_f2_f3_l = [25, 27, howlett_t, 29, 31]
+    d_f2_f3_l = [howlett_t - 3, howlett_t - 1, howlett_t, howlett_t + 1, howlett_t + 3]
+    # d_f2_f3_l = [25, 27, howlett_t, 29, 31]
     num_d_f2_f3 = len(d_f2_f3_l)
     # d_f2_f3_l = list(range(3, 28, 5))
     # d_f2_f3_l.append(howlett_t)
     for curr_t in d_f2_f3_l:
+        print('')
+        print('')
         str = "d_f2_f3 = %0.2f" % (curr_t)
         print(str)
 
@@ -1003,8 +1006,11 @@ def howlett_upgraded_OD():
 
         IOD.calc_TA_diff_TT()
         IOD.calc_OO_norm()
+        print('TT = ', end = " ")
         print(IOD.TT)
+        print('TA = ', end = " ")
         print(IOD.TA)
+        print('OO = ', end = " ")
         print(IOD.OO)
         print('Norm: %7.2f' %(IOD.norm))
 
@@ -1052,6 +1058,8 @@ def howlett_upgraded_OD():
 
         print(IOD.TA)
         print(IOD.OO)
+        print('####################################')
+        print('####################################')
 
         # soln_l = []
         # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
