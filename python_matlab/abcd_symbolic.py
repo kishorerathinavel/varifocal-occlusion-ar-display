@@ -934,6 +934,7 @@ Modelling the optical system from
 Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
 '''
 def howlett_upgraded_OD():
+    print('####################################')
     IOD = OD.optical_design()
     op = outputs()
     # diop_diff = 0.6
@@ -990,6 +991,7 @@ def howlett_upgraded_OD():
     for curr_t in d_f2_f3_l:
         print('')
         print('')
+        print('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
         str = "d_f2_f3 = %0.2f" % (curr_t)
         print(str)
 
@@ -1058,8 +1060,7 @@ def howlett_upgraded_OD():
 
         print(IOD.TA)
         print(IOD.OO)
-        print('####################################')
-        print('####################################')
+        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
 
         # soln_l = []
         # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
