@@ -22,7 +22,7 @@
     <ProjectGuid>{2A8D1465-4F08-49EF-BCE5-91CA9F9DBF43}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>AssimpModelImportDemo</RootNamespace>
-    <ProjectName>AssimpModelImportDemo</ProjectName>
+    <ProjectName>VO</ProjectName>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

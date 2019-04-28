@@ -2286,7 +2286,6 @@ int init()
 // Main function
 //
 int main(int argc, char **argv) {
-
 	//int success = initLenses();
 	//if (!success) {
 	//	printf("Encounted error in initLenses() \n");
@@ -2311,7 +2310,6 @@ int main(int argc, char **argv) {
 		glutInitWindowSize(1920, 1080);
 	}
 	glutCreateWindow("Varifocal Occlusion");
-
 
 	//  Callback Registration
 	glutDisplayFunc(renderScene);

@@ -17,6 +17,12 @@ out float Depth;
 void main() {
   Normal = normalize(vec3(viewMatrix * modelMatrix * vec4(normal,0.0)));	
   TexCoord = vec2(texCoord);
+
+  /* The real depth value should be mapped to the range [0,1]. 
+     The below code does this.
+     Code taken from: http://web.archive.org/web/20130416194336/http://olivers.posterous.com/linear-depth-in-glsl-for-real
+     Backups of code in Google Drive. Filename: Real Depth in OpenGL_GLSL
+   */
   gl_Position = projMatrix * viewMatrix * modelMatrix * vec4(position,1.0);
   float z_n = gl_Position.z/gl_Position.w; // z_n in [-1, 1]
   float z_b = 0.5*z_n + 0.5; // z_b in [0, 1]

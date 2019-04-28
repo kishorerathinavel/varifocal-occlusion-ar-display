@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+# Visual Studio 2017
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssimpModelImport Demo", "AssimpModelImportDemo\AssimpModelImport Demo.vcxproj", "{2A8D1465-4F08-49EF-BCE5-91CA9F9DBF43}"
 EndProject
 Global
