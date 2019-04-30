@@ -65,9 +65,13 @@ def print_matrix(mat, tex='True'):
     print(tex)
     if(tex == 'True'):
         print(latex(mat[0,0], order = 'ilex'))
+        print('')
         print(latex(mat[0,1], order = 'ilex'))
+        print('')
         print(latex(mat[1,0], order = 'ilex'))
+        print('')
         print(latex(mat[1,1], order = 'ilex'))
+        print('')
     else:
         print(mat[0,0])
         print(mat[0,1])

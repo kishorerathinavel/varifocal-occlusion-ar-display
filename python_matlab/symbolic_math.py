@@ -51,7 +51,7 @@ def main():
     M1 = makeLensMatrix(sym_f1)
     sym_f2 = Symbol('F_2')
     M2 = makeLensMatrix(sym_f2)
-    sym_f3 = Symbol('F_3')
+    sym_f3 = Symbol('F_2')
     M3 = makeLensMatrix(sym_f3)
     sym_f4 = Symbol('F_4^{(t)}')
     M4 = makeLensMatrix(sym_f4)
@@ -60,7 +60,7 @@ def main():
     S12 = makeFreeSpacePropagationMatrix(sym_d12)
     sym_d23 = Symbol('d_{23}')
     S23 = makeFreeSpacePropagationMatrix(sym_d23)
-    sym_d34 = Symbol('d_{34}')
+    sym_d34 = Symbol('d_{12}')
     S34 = makeFreeSpacePropagationMatrix(sym_d34)
 
     TA = M4*S34*M3*S23*M2*S12*M1
