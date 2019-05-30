@@ -844,6 +844,7 @@ Modelling a modified optical system from
 Howlett-Smithwick-SID2017-Perspective correct occlusion-capable augmented reality displays using cloaking optics constraints
 '''
 def howlett_1D():
+    print('####################################')
     IOD = OD.optical_design()
     op = outputs()
     # diop_diff = 0.6
@@ -862,39 +863,68 @@ def howlett_1D():
     ylabels_l = ["mag_arr", "img_dist"]
     ylim_l = [[-1.5, 1.5], [-1, -1]]
 
-    IOD.f1 = 5
-    IOD.f2 = 5
-    IOD.f3 = 5
-    IOD.f4 = 5
+    common_f = 5
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f
+    curr_lens.d_prev_lens = 0.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+    
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f 
+    curr_lens.d_prev_lens = 2*common_f
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
 
-    howlett_d = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-    # howlett_t = howlett_d + 4*IOD.f1
-    howlett_t = 4*IOD.f1
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f
+    curr_lens.d_prev_lens = 0.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
 
-    d_f2_f3_l = [17, 19, 20, 21, 23]
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f
+    curr_lens.d_prev_lens = 2*common_f
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+
+    howlett_t = 20
+
+    II = Matrix([[1,0], [0,1]])
+
+    d_f2_f3_l = [howlett_t - 3, howlett_t - 1, howlett_t, howlett_t + 1, howlett_t + 3]
+    # d_f2_f3_l = [25, 27, howlett_t, 29, 31]
     num_d_f2_f3 = len(d_f2_f3_l)
     # d_f2_f3_l = list(range(3, 28, 5))
     # d_f2_f3_l.append(howlett_t)
-    for IOD.d_f2_f3 in d_f2_f3_l:
-        str = "d_f2_f3 = %0.2f" % (IOD.d_f2_f3)
+    for curr_t in d_f2_f3_l:
+        print('')
+        print('')
+        print('vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
+        str = "d_f2_f3 = %0.2f" % (curr_t)
         print(str)
 
-        IOD.d_f1_f2 = 2*IOD.f1
-        IOD.d_f3_f4 = 2*IOD.f1
+        IOD.length = 0
+
+        IOD.lens_l[2].d_prev_lens = curr_t
         IOD.calc_ABCD_matrices()
         IOD.calc_TA()
-        II = Matrix([[1,0], [0,1]])
-        IOD.d_f1_f4 = IOD.d_f1_f2 + IOD.d_f2_f3 + IOD.d_f3_f4
-        S14 = cf.makeFreeSpacePropagationMatrix(IOD.d_f1_f4)
-        TT = II
-        # TT = S14
-        IOD.TT = II
 
+        IOD.TT = II
         IOD.calc_TA_diff_TT()
-        OO = IOD.OO
-        OO_l = OO.tolist()
-        flat_OO_l = []
-        cf.conv_lol_flat_l(OO_l, flat_OO_l)
+        IOD.calc_OO_norm()
+        # print('TT = ', end = " ")
+        # print(IOD.TT)
+        # print('TA = ', end = " ")
+        # print(IOD.TA)
+        # print('OO = ', end = " ")
+        # print(IOD.OO)
+        # print('Norm: %7.2f' %(IOD.norm))
+
+        # OO = IOD.OO
+        # OO_l = OO.tolist()
+        # flat_OO_l = []
+        # cf.conv_lol_flat_l(OO_l, flat_OO_l)
 
         str = "Magnification at all distances:"
         custom_prnt(str)
@@ -904,17 +934,20 @@ def howlett_1D():
             # str = "    dist = %0.2f" % (dist)
             # print(str)
 
-            dist_index = dists_l.index(dist)
+            # dist_index = dists_l.index(dist)
 
-            # IOD.populate_d_eye(dist)
-            IOD.d_W_f1 = dist
+            # # IOD.populate_d_eye(dist)
+            # IOD.d_vip_eye = dist
+            # IOD.d_W_f1 = IOD.d_vip_eye - IOD.d_f4_eye - howlett_d
+            # IOD.d_W_f4 = IOD.d_vip_eye - IOD.d_f4_eye
 
-            IOD.propagate_rw_all(IOD.d_W_f1) # Assume that dist = d_W_f1
+            IOD.propagate_rw_all(dist) # Assume that dist = d_W_f1
 
-            diff_dist = IOD.d_WI_f4 + IOD.d_W_f1
+            diff_dist = IOD.lens_l[-1].d_image + IOD.length + dist
             diff_l.append(diff_dist)
 
-            mag_l.append(IOD.rw_magnification)
+            # mag_l.append(IOD.magnification)
+            mag_l.append(IOD.lens_l[-1].d_image/(dist + IOD.length))
 
 
         mag_arr = np.array(mag_l, dtype=np.float64)
@@ -925,8 +958,19 @@ def howlett_1D():
         # print(str)
         print('\n')
 
+        # for curr_lens in IOD.lens_l:
+        #     print(curr_lens.M)
+
+        # for curr_lens in IOD.lens_l:
+        #     print(curr_lens.S)
+
+        # print(IOD.TA)
+        # print(IOD.OO)
+        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+
         # soln_l = []
         # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
+    
     
 '''
 Using the new OD.py
@@ -1008,13 +1052,13 @@ def howlett_upgraded_OD():
 
         IOD.calc_TA_diff_TT()
         IOD.calc_OO_norm()
-        print('TT = ', end = " ")
-        print(IOD.TT)
-        print('TA = ', end = " ")
-        print(IOD.TA)
-        print('OO = ', end = " ")
-        print(IOD.OO)
-        print('Norm: %7.2f' %(IOD.norm))
+        # print('TT = ', end = " ")
+        # print(IOD.TT)
+        # print('TA = ', end = " ")
+        # print(IOD.TA)
+        # print('OO = ', end = " ")
+        # print(IOD.OO)
+        # print('Norm: %7.2f' %(IOD.norm))
 
         # OO = IOD.OO
         # OO_l = OO.tolist()
@@ -1041,7 +1085,8 @@ def howlett_upgraded_OD():
             diff_dist = IOD.lens_l[-1].d_image + IOD.length + dist
             diff_l.append(diff_dist)
 
-            mag_l.append(IOD.magnification)
+            # mag_l.append(IOD.magnification)
+            mag_l.append(IOD.lens_l[-1].d_image/(dist + IOD.length))
 
 
         mag_arr = np.array(mag_l, dtype=np.float64)
@@ -1052,14 +1097,14 @@ def howlett_upgraded_OD():
         # print(str)
         print('\n')
 
-        for curr_lens in IOD.lens_l:
-            print(curr_lens.M)
+        # for curr_lens in IOD.lens_l:
+        #     print(curr_lens.M)
 
-        for curr_lens in IOD.lens_l:
-            print(curr_lens.S)
+        # for curr_lens in IOD.lens_l:
+        #     print(curr_lens.S)
 
-        print(IOD.TA)
-        print(IOD.OO)
+        # print(IOD.TA)
+        # print(IOD.OO)
         print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
 
         # soln_l = []
@@ -1219,7 +1264,7 @@ def main_all():
 if __name__ == '__main__':
     # tunable_f1_f2_f3()
     # tunable_f1_f2()
-    howlett_upgraded_OD()
-    # howlett_1D()
+    # howlett_upgraded_OD()
+    howlett_1D()
     # tunable_all_symmetric()
 
