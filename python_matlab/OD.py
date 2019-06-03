@@ -17,13 +17,12 @@ class lens():
         self.tunable = False
         self.M = []
         self.S = []
-        
-    
+
 class optical_design(): 
     def __init__(self):
         self.lens_l = []
-        self.min_d_f_LCoS = 4.0
-        self.min_d_f_eye = 2.0
+        # self.cube_f2 = 5 - 1.5
+        self.cube_f2 = 1.7
         self.num_lenses = 0
         self.num_lenses_om = 0
         self.d_vip_eye = 0.0
@@ -49,7 +48,7 @@ class optical_design():
 
     def propagate_om(self):
         self.magnification = 1.0
-        last_image_distance = self.min_d_f_LCoS
+        last_image_distance = self.lens_l[self.num_lenses - self.num_lenses_om].d_prev_lens - (3 + self.cube_f2)
         for lens in self.lens_l[self.num_lenses - self.num_lenses_om:]:
             lens.d_object = lens.d_prev_lens - last_image_distance
             lens.d_image = cf.calculate_image_distance(lens.d_object, lens.focal_length)

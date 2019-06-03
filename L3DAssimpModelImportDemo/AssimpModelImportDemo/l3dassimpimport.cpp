@@ -69,16 +69,20 @@
 #include "testPythonInterface.h"
 #include "lens_controls.h"
 
+//char *position_filename = "Position_daffodil_flowerpot.txt";
+char *position_filename = "Position_ring_teapot_bull.txt";
+
 bool toggle_om = true;
-bool fixed_focus = false;
-bool display_on_device = !true;
+bool fixed_focus = true;
+bool toggle_virtual = true;
+bool display_on_device = true;
 int display_1[] ={ 2560, 1600 };
 int display_2[] ={ 1440, 2560 };
 int display_3[] ={ 1920, 1080 };
 int om_vp_pos[] ={display_2[0], display_2[1] - display_3[1]};
 int om_vp_size[] ={1920, 1080};
-int vi_vp_pos[] ={659, 1101};
-int vi_vp_size[] ={ 317, 178 };
+int vi_vp_pos[] ={657, 1100};
+int vi_vp_size[] ={ 323, 181 };
 int window_position[] ={display_1[0], 0 };
 int window_size[] ={ display_2[0] + display_3[0], 2560 };
 
@@ -154,7 +158,7 @@ char *fname_blurmap_vertex_shader = "blurmap.vert";
 char *fname_blurmap_fragment_shader = "blurmap.frag";
 
 // Values to pass in
-float focal_depth_value = 0.5;
+float focal_depth_value = 0.0;
 // For Program 2 =====================================
 
 // For Program 3 =====================================
@@ -1129,7 +1133,7 @@ void drawModels() {
 void savePosition() {
 	// save position information for each model
 	std::ofstream Position;
-	Position.open("Position.txt",std::ios::trunc);
+	Position.open(position_filename,std::ios::trunc);
 	Position << "N " << NUM_MODELS << std::endl;
 	
 	for (int modelIter = 0; modelIter < NUM_MODELS; modelIter++) {
@@ -1141,6 +1145,7 @@ void savePosition() {
 	}
 
 	Position <<"C " << r <<" "<<alpha <<" "<<beta<< std::endl;
+	Position << "Z " << zFar << std::endl;
 	Position.close();
 }
 
@@ -1152,7 +1157,7 @@ void usePosition() {
 	int c1, c2;
 	int mn;
 
-	fp = fopen("Position.txt", "rb");
+	fp = fopen(position_filename, "rb");
 
 	if (fp == NULL) {
 		printf("Error loading Position \n");
@@ -1163,7 +1168,7 @@ void usePosition() {
 		c1 = fgetc(fp);
 		
 
-		while (!(c1 == 'M' || c1 == 'T' || c1 == 'R' || c1 == 'S' || c1 == 'C')) {
+		while (!(c1 == 'M' || c1 == 'T' || c1 == 'R' || c1 == 'S' || c1 == 'C' || c1 == 'Z')) {
 			c1 = fgetc(fp);
 			if (feof(fp))
 				break;
@@ -1201,6 +1206,11 @@ void usePosition() {
 			alpha = y;
 			beta = z;
          }
+
+		if ((c1 == 'Z') && (c2 == ' ')) {
+			fscanf(fp, "%f", &x);
+			zFar = x;
+		}
 	}
 	fclose(fp);
 	currModel = &model[0];
@@ -1316,42 +1326,44 @@ void renderScene() {
 
 		// Displaying the virtual image
 		glViewport(vi_vp_pos[0], vi_vp_pos[1], vi_vp_size[0], vi_vp_size[1]);
-		if (fixed_focus) { // Uses fixed pipeline
-			glUseProgram(fixed_vip_program);
+		if (toggle_virtual) {
+			if (fixed_focus) { // Uses fixed pipeline
+				glUseProgram(fixed_vip_program);
 
-			// Important that these two lines come after the glUseProgram() command
-			glUniform1i(fixed_vip_rgb_img, 0);
-			glEnable(GL_TEXTURE_2D);
-			glActiveTexture(GL_TEXTURE0 + 0);
-			glBindTexture(GL_TEXTURE_2D, tex_rgb);
+				// Important that these two lines come after the glUseProgram() command
+				glUniform1i(fixed_vip_rgb_img, 0);
+				glEnable(GL_TEXTURE_2D);
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_2D, tex_rgb);
 
-			glBindVertexArray(postprocess_VAO);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			glDisable(GL_TEXTURE_2D);
-			// Important to set default active texture back to GL_TEXTURE0
-			glActiveTexture(GL_TEXTURE0);
-		}
-		else { // Uses shaders
-			glUseProgram(blur_program);
+				glBindVertexArray(postprocess_VAO);
+				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+				glDisable(GL_TEXTURE_2D);
+				// Important to set default active texture back to GL_TEXTURE0
+				glActiveTexture(GL_TEXTURE0);
+			}
+			else { // Uses shaders
+				glUseProgram(blur_program);
 
-			// Important that these two lines come after the glUseProgram() command
-			glUniform1i(blur_rgb_img, 0);
-			glUniform1i(blur_blur_map, 1);
-			glUniform1i(blur_depth_map, 2);
-			glUniform1f(blur_zFar_uniformLocation, zFar);
-			glEnable(GL_TEXTURE_2D);
-			glActiveTexture(GL_TEXTURE0 + 0);
-			glBindTexture(GL_TEXTURE_2D, tex_rgb);
-			glActiveTexture(GL_TEXTURE0 + 1);
-			glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
-			glActiveTexture(GL_TEXTURE0 + 2);
-			glBindTexture(GL_TEXTURE_2D, tex_depth);
+				// Important that these two lines come after the glUseProgram() command
+				glUniform1i(blur_rgb_img, 0);
+				glUniform1i(blur_blur_map, 1);
+				glUniform1i(blur_depth_map, 2);
+				glUniform1f(blur_zFar_uniformLocation, zFar);
+				glEnable(GL_TEXTURE_2D);
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_2D, tex_rgb);
+				glActiveTexture(GL_TEXTURE0 + 1);
+				glBindTexture(GL_TEXTURE_2D, tex_blurmap_rgb);
+				glActiveTexture(GL_TEXTURE0 + 2);
+				glBindTexture(GL_TEXTURE_2D, tex_depth);
 
-			glBindVertexArray(postprocess_VAO);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			glDisable(GL_TEXTURE_2D);
-			// Important to set default active texture back to GL_TEXTURE0
-			glActiveTexture(GL_TEXTURE0);
+				glBindVertexArray(postprocess_VAO);
+				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+				glDisable(GL_TEXTURE_2D);
+				// Important to set default active texture back to GL_TEXTURE0
+				glActiveTexture(GL_TEXTURE0);
+			}
 		}
 
 		// Displaying the occlusion image
@@ -1567,6 +1579,7 @@ void processKeys(unsigned char key, int xx, int yy) {
 			case 27: { glutLeaveMainLoop(); break; }
 			case 'p': toggle_om = !toggle_om; break;
 			case 'f': fixed_focus = !fixed_focus; break;
+			case 'v': toggle_virtual = !toggle_virtual; break;
 			case 'j': focal_depth_value = modify_valuef(focal_depth_value, -0.01, 0.0, 1.0); printf("focal_depth_value: %f \n", focal_depth_value); break;
 			case 'k': focal_depth_value = modify_valuef(focal_depth_value, 0.01, 0.0, 1.0); printf("focal_depth_value: %f \n", focal_depth_value); break;
 			default: printf("Entered key does nothing \n");
@@ -1650,8 +1663,10 @@ void processKeys(unsigned char key, int xx, int yy) {
 			case 'w': vi_vp_pos[0] = modify_valuei(vi_vp_pos[0], 1, 0, display_2[0]); print_valuei(vi_vp_pos[0], "vi_vp_pos[0]"); break;
 			case 'e': vi_vp_pos[1] = modify_valuei(vi_vp_pos[1], -1, 0, display_2[0]); print_valuei(vi_vp_pos[1], "vi_vp_pos[1]"); break;
 			case 'r': vi_vp_pos[1] = modify_valuei(vi_vp_pos[1], 1, 0, display_2[0]); print_valuei(vi_vp_pos[1], "vi_vp_pos[1]"); break;
-			case 'a': vi_vp_size[0] = modify_valuei(vi_vp_size[0], -1, 0, display_2[0]); vi_vp_size[1] = (float(om_vp_size[1])/om_vp_size[0])*vi_vp_size[0]; print_valuei(vi_vp_size[0], "vi_vp_size[0]"); print_valuei(vi_vp_size[1], "vi_vp_size[1]"); break;
-			case 's': vi_vp_size[0] = modify_valuei(vi_vp_size[0], 1, 0, display_2[0]); vi_vp_size[1] = (float(om_vp_size[1])/om_vp_size[0])*vi_vp_size[0]; print_valuei(vi_vp_size[0], "vi_vp_size[0]"); print_valuei(vi_vp_size[1], "vi_vp_size[1]"); break;
+			case 'a': vi_vp_size[0] = modify_valuei(vi_vp_size[0], -1, 0, display_2[0]); print_valuei(vi_vp_size[0], "vi_vp_size[0]");  break;
+			case 's': vi_vp_size[0] = modify_valuei(vi_vp_size[0], 1, 0, display_2[0]); print_valuei(vi_vp_size[0], "vi_vp_size[0]"); break;
+			case 'z': vi_vp_size[1] = modify_valuei(vi_vp_size[1], -1, 0, display_2[1]); print_valuei(vi_vp_size[1], "vi_vp_size[1]"); break;
+			case 'x': vi_vp_size[1] = modify_valuei(vi_vp_size[1], 1, 0, display_2[1]); print_valuei(vi_vp_size[1], "vi_vp_size[1]"); break;
 			default: printf("Entered key does nothing \n");
 			}
 

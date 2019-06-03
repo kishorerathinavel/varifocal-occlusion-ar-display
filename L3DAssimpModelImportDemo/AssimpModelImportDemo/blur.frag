@@ -38,14 +38,16 @@ void main() {
 
   vec4 contributionFromAdjFrag = vec4(0.0);
   float weight = 0.0;
-  for (int iterX = -10; iterX < 11; iterX = iterX + 1) {
-    for (int iterY = -10; iterY < 11; iterY = iterY + 1) {
-      if((iterX == 0 && iterY == 0) || (iterX*iterX + iterY*iterY > 10*10)) {
+  int kernelSize = 10;
+  float sampleIncrements = 1.0;
+  for (int iterX = -kernelSize; iterX < kernelSize+1; iterX = iterX + 1) {
+    for (int iterY = -kernelSize; iterY < kernelSize+1; iterY = iterY + 1) {
+      if((iterX == 0 && iterY == 0) || (iterX*iterX + iterY*iterY > kernelSize*kernelSize)) {
 	continue;
       } else {
 	float iterXf = float(iterX);
 	float iterYf = float(iterY);
-	vec2 adjcorrected_TexCoord = vec2(corrected_TexCoord.x + 2.0*iterXf/maxX, corrected_TexCoord.y + 2.0*iterYf/maxY);
+	vec2 adjcorrected_TexCoord = vec2(corrected_TexCoord.x + sampleIncrements*iterXf/maxX, corrected_TexCoord.y + sampleIncrements*iterYf/maxY);
 	vec4 v4_adjFrag_depth = texture(depth_map, adjcorrected_TexCoord);
 	float adjFrag_depth = v4_adjFrag_depth[0];
 	if((adjFrag_depth == 1.0) || adjFrag_depth - centerFrag_depth > 0.01) {
@@ -55,7 +57,7 @@ void main() {
 	  vec4 v4_adjFrag_rgb = texture(rgb_img, adjcorrected_TexCoord);
 	  vec4 v4_adjFrag_blur = vec4(convertDisaprityToBlur(texture(blur_map, adjcorrected_TexCoord)));
 	  float adjFrag_blur = v4_adjFrag_blur[0];
-	  float dist = sqrt((iterXf*iterXf)/100.0 + (iterYf*iterYf)/100.0);
+	  float dist = sqrt((iterXf*iterXf)/(float(kernelSize*kernelSize)) + (iterYf*iterYf)/(float(kernelSize*kernelSize)));
 					
 	  //contributionFromAdjFrag = contributionFromAdjFrag + (adjFrag_blur/441.0)*((10.0/1024.0)/distance)*v4_adjFrag_rgb;
 	  contributionFromAdjFrag = contributionFromAdjFrag + dist*adjFrag_blur*v4_adjFrag_rgb;
@@ -64,7 +66,7 @@ void main() {
     }
   }
 
-  FragColor = (1.0 - centerFrag_blur)*v4_centerFrag_rgb + contributionFromAdjFrag/(3.14*10.0*10.0);
+  FragColor = (1.0 - centerFrag_blur)*v4_centerFrag_rgb + contributionFromAdjFrag/(3.14*(float(kernelSize*kernelSize)));
   // if(corrected_TexCoord.x < 0.5) {
   //   FragColor = (1.0 - centerFrag_blur)*v4_centerFrag_rgb;
   // } else {
