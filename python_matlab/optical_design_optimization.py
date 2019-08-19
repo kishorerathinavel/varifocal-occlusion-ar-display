@@ -8,6 +8,7 @@ from scipy.optimize import NonlinearConstraint
 from scipy.optimize import SR1
 import common_functions as cf
 import OD
+import time
 from sympy import *
 
 '''
@@ -108,7 +109,6 @@ def bk_initialize_IOD(IOD):
     #     print('d_f2_f3 can not be smaller than %f' %(min_d_f2_f3))
     #     d_f2_f3 = min_d_f2_f3
     # d_f2_f3 = 7.0
-
 
     curr_lens = OD.lens()
     curr_lens.focal_length = -1
@@ -384,6 +384,7 @@ def using_differential_evolution():
     f4_l = []
     for vip_dist in dists_l:
         # print('###########################\n\n')
+        start_time = time.perf_counter()
         IOD.d_vip_eye = vip_dist
 
         curr_res = differential_evolution(energy_function, bounds=myBounds, args=energy_function_args)
@@ -395,6 +396,11 @@ def using_differential_evolution():
             if(curr_res.fun < min_energy):
                 min_energy = curr_res.fun
                 res = curr_res
+
+        elapsed_time = time.perf_counter() - start_time
+        print("Elapsed time:", end=" ")
+        print(elapsed_time)
+
 
         IOD.populate_focal_lengths(res.x)
         IOD.propagate_rw_all(vip_dist)

@@ -1201,6 +1201,84 @@ def howlett():
         # soln_l = []
         # graph_outputs(op, dists_l, soln_l, outputs_dir, ylabels_l, ylim_l)
 
+
+def initialize_IOD(IOD):
+    init_d12 =
+    init_d23 =
+    init_d34 =
+    init_f2 =
+    init_f3 =
+    IOD.target_magnification = 1.0
+    common_f2_f3 = 3.5
+    # L1:
+    curr_lens = OD.lens()
+    # curr_lens.focal_length = cf.convert_dpt2cm(-5.0)
+    curr_lens.focal_length = cf.convert_dpt2cm(-5.0)
+    curr_lens.d_prev_lens = 0.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+    # L2:
+    curr_lens = OD.lens()
+    curr_lens.focal_length = -1
+    # curr_lens.d_prev_lens = 1.6
+    curr_lens.d_prev_lens = 1.5
+    curr_lens.tunable = True
+    IOD.lens_l.append(curr_lens)
+    # L3:
+    curr_lens = OD.lens()
+    # curr_lens.focal_length = cf.convert_dpt2cm(20.0)
+    # curr_lens.d_prev_lens = 2.0
+    curr_lens.focal_length = cf.convert_dpt2cm(20.0)
+    curr_lens.d_prev_lens = 2.0 - 0.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+    # L4:
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f2_f3
+    # curr_lens.d_prev_lens = 3+3+IOD.cube_f2
+    curr_lens.d_prev_lens = 3+3+IOD.cube_f2 # DO NOT CHANGE
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+    # L5:
+    curr_lens = OD.lens()
+    curr_lens.focal_length = common_f2_f3
+    # curr_lens.d_prev_lens = 14.5
+    curr_lens.d_prev_lens = 14.5 - 2.0
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+    # L6:
+    curr_lens = OD.lens()
+    # curr_lens.focal_length = cf.convert_dpt2cm(-2)
+    # curr_lens.d_prev_lens = 5.2
+    curr_lens.focal_length = cf.convert_dpt2cm(+4)
+    curr_lens.d_prev_lens = 6.5
+    curr_lens.tunable = False
+    IOD.lens_l.append(curr_lens)
+    # L7:
+    curr_lens = OD.lens()
+    curr_lens.focal_length = -1
+    # curr_lens.d_prev_lens = 3
+    curr_lens.d_prev_lens = 3.0
+    curr_lens.tunable = True
+    IOD.lens_l.append(curr_lens)
+
+    IOD.length = 0
+    IOD.num_lenses = 0
+    IOD.num_lenses_om = 4
+    IOD.num_tunable_lenses = 0
+    for curr_lens in IOD.lens_l:
+        IOD.num_lenses = IOD.num_lenses + 1
+        # IOD.length = IOD.length + curr_lens.d_prev_lens
+        if(curr_lens.tunable == True):
+            IOD.num_tunable_lenses = IOD.num_tunable_lenses + 1
+
+def paper_revision():
+    IOD = OD.optical_design()
+    initialize_IOD(IOD)
+    initialize_rw_distances()
+
+ 
+
 # An attempt to automate tunable_all_symmetric, tunable_f1_f2_f3, etc. by specifying just the unknowns
 def main_all():
     print('DO NOT USE THIS MAIN. IT''S WORK IN PROGRESS')
@@ -1265,6 +1343,7 @@ if __name__ == '__main__':
     # tunable_f1_f2_f3()
     # tunable_f1_f2()
     # howlett_upgraded_OD()
-    howlett_1D()
+    # howlett_1D()
+    paper_revision()
     # tunable_all_symmetric()
 
