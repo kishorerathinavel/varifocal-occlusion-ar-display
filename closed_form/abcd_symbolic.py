@@ -1203,11 +1203,6 @@ def howlett():
 
 
 def initialize_IOD(IOD):
-    init_d12 =
-    init_d23 =
-    init_d34 =
-    init_f2 =
-    init_f3 =
     IOD.target_magnification = 1.0
     common_f2_f3 = 3.5
     # L1:
@@ -1346,4 +1341,3 @@ if __name__ == '__main__':
     # howlett_1D()
     paper_revision()
     # tunable_all_symmetric()
-
